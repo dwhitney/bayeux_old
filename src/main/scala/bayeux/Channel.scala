@@ -30,13 +30,15 @@ object Channel{
 			case Some(channel: Channel) => channel
 			case None =>
 				val channel = new Channel(name)
-				channels = channels + (name -> channel)
+				channels = channels.update(name, channel)
 				channel
 		}
 	}
 	
 	def getChannels: HashTrie[String, Channel] = channels
 	def clearChannels: Unit = channels = new HashTrie[String, Channel]()
+
+    def main(args: Array[String]) = println("Hello World!")
 	
 }
 
