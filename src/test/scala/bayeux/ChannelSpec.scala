@@ -2,6 +2,7 @@ package us.says.bayeux
 
 import org.scalatest.{FlatSpec, BeforeAndAfterEach}
 import org.scalatest.matchers.MustMatchers
+import se.scalablesolutions.akka.collection.HashTrie
 
 class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
@@ -44,32 +45,104 @@ class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 		()
 	}
 	
-	it should "getChannels" in {
-		Channel.getChannels must not be (null)
+	it should "throw an IllegalArgumentException if the channel name has wildcards when the apply() method is called" in {
+	    evaluating { 
+			val channel = Channel("/**")
+			() 
+		} must produce [IllegalArgumentException]
+	}
+	
+	it should "throw an IllegalArgumentException the last character is a slash" in {
+	    evaluating { 
+			val channel = Channel("/chat/")
+			() 
+		} must produce [IllegalArgumentException]
+	}
+	
+	it should "all should return the hashtrie" in {
+		Channel.all must not be (null)
 	}
 	
 	it should "add channels to the channels hash" in {
-		Channel.getChannels.size must equal(0)
+		Channel.all.size must equal(0)
 		val channel = Channel("/chat/scala")
-		Channel.getChannels.size must equal(1)
+		Channel.all.size must equal(1)
 	}
 	
 	it should "add channels to the channels hash and they should go under the same key" in {
-		Channel.getChannels.size must equal(0)
+		Channel.all.size must equal(0)
 		val channel = Channel("/chat/scala")
-		Channel.getChannels.size must equal(1)
+		Channel.all.size must equal(1)
 		
 		val channel2 = Channel("/chat/scala")
-		Channel.getChannels.size must equal(1)
+		Channel.all.size must equal(1)
 	}
 	
 	it should "add channels to the channels hash getting another should return the exact same instance" in {
-		Channel.getChannels.size must equal(0)
+		Channel.all.size must equal(0)
 		val channel = Channel("/chat/scala")
-		Channel.getChannels.size must equal(1)
+		Channel.all.size must equal(1)
 		
 		val channel2 = Channel("/chat/scala")
 		assert(channel eq channel2)
 	}
 	
+	it should "return a list of one element when no wildcard is used with getChannels" in {
+	    val channel = Channel("/chat/scala")
+	    Channel.getChannels("/chat/scala") must equal (Set(channel))
+	} 
+	
+	it should "return multiple matches on the /** pattern" in {
+	    val channelOne = Channel("/chat/one")
+	    val channelOneSubA = Channel("/chat/one/a")
+	    Channel.getChannels("/chat/**") must equal (Set(channelOne, channelOneSubA))
+	}
+	
+	it should "return multiple matches on the /** pattern (testing multiple channels that don't apply to the pattern)" in {
+	    val channelOne = Channel("/chat/one")
+	    val channelOneSubA = Channel("/chat/one/a")
+	    val channelBlah = Channel("/blah/foo")
+	    Channel.getChannels("/chat/**") must equal (Set(channelOne, channelOneSubA))
+	}
+	
+	it should "return single level matches on the /* pattern " in {
+	    val channelOne = Channel("/chat/one")
+	    val channelOneSubA = Channel("/chat/one/a")
+	    val channelBlah = Channel("/blah/foo")
+	    Channel.getChannels("/chat/*") must equal (Set(channelOne))
+	}
+	
+	it should "take subscriptions" in {
+	    val client = new Client
+
+	    val channel = Channel("/chat/scala")
+	    channel.start
+	    
+	    channel ! Subscribe(client)
+	    val subscribers = (channel !! GetSubscribers).getOrElse(new HashTrie[String, Client])
+	    var testSubscribers = new HashTrie[String, Client]
+	    testSubscribers = testSubscribers.update(client.uuid, client)
+
+        subscribers must equal (testSubscribers)
+	}
+	
+	it should "take unsubscriptions" in {
+	    val client = new Client
+
+	    val channel = Channel("/chat/scala")
+	    channel.start
+	    
+	    channel ! Subscribe(client)
+	    var subscribers = (channel !! GetSubscribers).getOrElse(new HashTrie[String, Client])
+	    var testSubscribers = new HashTrie[String, Client]
+	    testSubscribers = testSubscribers.update(client.uuid, client)
+	    subscribers must equal (testSubscribers)
+	    
+	    channel ! Unsubscribe(client)
+        
+        subscribers = (channel !! GetSubscribers).getOrElse(new HashTrie[String, Client])
+	    testSubscribers = new HashTrie[String, Client]
+	    
+        subscribers must equal (testSubscribers)
+	}
 }
