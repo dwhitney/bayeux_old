@@ -145,4 +145,20 @@ class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    
         subscribers must equal (testSubscribers)
 	}
+	
+	it must "publish messages to all of the clients in a channel when receiving a publish message" in {
+	    import scala.collection.immutable.Queue
+	    val channel = Channel("/chat/scala")
+	    val client = new Client
+	    channel ! Subscribe(client)
+	    
+	    val message = new Message(Channel("/chat/scala"))
+	    
+	    channel ! Publish(message)
+	    
+	    val queue = Queue[Message]() enqueue message
+	    //sleep to let actors all process messages
+	    Thread.sleep(10)
+	    (client !! GetMessageQueue).getOrElse(Queue[Message]()) must equal(queue)
+	}
 }

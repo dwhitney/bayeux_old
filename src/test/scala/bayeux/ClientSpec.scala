@@ -58,7 +58,29 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    val scala = Channel("/chat/scala")
 	    val play = Channel("/chat/play")
 	    
+	    client ! AddSubscription(scala)
+	    client ! AddSubscription(play)
 	    
+	    (client !! GetSubscriptions).getOrElse(Set[Channel]()) must equal(Set[Channel]() + scala + play)
+	    
+	    
+	    client ! Disconnect
+	    //sleep to give actors time to process messages
+	    Thread.sleep(10)
+	    client.isRunning must be (false)
+	    (scala !! GetSubscribers).getOrElse(HashTrie[String, Client]() + (client.uuid -> client)).size must equal(0)
+	    (play !! GetSubscribers).getOrElse(HashTrie[String, Client]() + (client.uuid -> client)).size must equal(0)
+	}
+	
+	it must "enqueue a message in its message queue when receiving a publish message" in {
+	    import scala.collection.immutable.Queue
+	    val client = new Client	    
+	    val message = new Message(Channel("/chat/scala"))
+	    
+	    client ! Publish(message)
+	    
+	    val queue = Queue[Message]() enqueue message
+	    (client !! GetMessageQueue).getOrElse(Queue[Message]()) must equal(queue)
 	}
 	
 }
