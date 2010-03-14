@@ -22,20 +22,32 @@ object Bayeux{
     val ERROR_MISSING_CONNECTION_TYPE = 404
     val ERROR_UNSUPPORTED_CONNECTION_TYPE = 405
     val ERROR_NO_SUBSCRIPTION_SPECIFIED = 406
+    val ERROR_NO_CHANNEL_SPECIFIED = 407
+    val ERROR_MISSING_DATA_FIELD = 408
 }
 
 trait Bayeux{
     
     //dispatches messages
     def dispatch(message: Message): Option[Message] = {
-        message.channel.name match {
-            case Bayeux.META_CONNECT => metaConnect(message)
-            case Bayeux.META_SUBSCRIBE => metaSubscribe(message)
-            case Bayeux.META_UNSUBSCRIBE => metaUnsubscribe(message)
-            case Bayeux.META_HANDSHAKE => metaHandshake(message)
-            case Bayeux.META_DISCONNECT => metaDisconnect(message)
-            case _ => None
+        if(message.channel == null){
+            error(message, List[Int](Bayeux.ERROR_NO_CHANNEL_SPECIFIED),List[String](null),"no channel was specified")
+        }else{
+            message.channel.name match {
+                case Bayeux.META_CONNECT => metaConnect(message)
+                case Bayeux.META_SUBSCRIBE => metaSubscribe(message)
+                case Bayeux.META_UNSUBSCRIBE => metaUnsubscribe(message)
+                case Bayeux.META_HANDSHAKE => metaHandshake(message)
+                case Bayeux.META_DISCONNECT => metaDisconnect(message)
+                case _ => publish(message)
+            }
         }
+    }
+    
+    //event messages, where most messages go
+    private def publish(message: Message): Option[Message] = {
+        message.channel ! Publish(message)
+        None    
     }
     
     //logic to carry out a /meta/unsubscribe message

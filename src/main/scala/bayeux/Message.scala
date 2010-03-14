@@ -1,7 +1,7 @@
 package us.says.bayeux
 
 //scala
-import scala.collection.immutable.HashMap
+import scala.collection.mutable.Map
 
 //joda-time
 import org.joda.time.{DateTime, DateTimeZone}
@@ -24,5 +24,6 @@ case class Message(val channel: Channel, val client: Client){
     var dateTime: DateTime = new DateTime(DateTimeZone.UTC)
     var timestamp: String = Message.timestampFormatter.print(dateTime)
     var subscription: Channel = null
+    val data: Map[String, Any] = Map[String, Any]()
     
 }

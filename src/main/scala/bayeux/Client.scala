@@ -1,5 +1,8 @@
 package us.says.bayeux
 
+//scala
+import scala.collection.immutable.Queue
+
 //akka
 import se.scalablesolutions.akka.actor._
 import se.scalablesolutions.akka.collection.HashTrie
@@ -20,9 +23,11 @@ case class AddSubscription(channel: Channel){}
 case class RemoveSubscription(channel: Channel){}
 case object GetSubscriptions{}
 case object Disconnect{}
+case object GetMessageQueue{}
 class Client extends Actor{
     
     private var channels = Set[Channel]()
+    private var messageQueue: Queue[Message] = Queue[Message]()
     
     //create uuid, stripping out the dashes as per the bayeux spec
     override val uuid = UUID.randomUUID.toString.replaceAll("-", "")
@@ -34,6 +39,9 @@ class Client extends Actor{
     Client.clients = Client.clients.update(uuid, this)
     
     def receive = {
+        case Publish(message: Message) =>
+            messageQueue = messageQueue enqueue message
+        case GetMessageQueue => reply(messageQueue)
         case AddSubscription(channel: Channel) =>
             //checking to see if the channel is already subscribed to, because Channel will call AddSubscription when a 
             //client is subscribed, and we want to avoid infinite calls back and forth

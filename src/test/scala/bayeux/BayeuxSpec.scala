@@ -1,5 +1,9 @@
 package us.says.bayeux
 
+//scala
+import scala.collection.immutable.Queue
+
+//scalatest
 import org.scalatest.{FlatSpec, BeforeAndAfterEach}
 import org.scalatest.matchers.MustMatchers
 import se.scalablesolutions.akka.collection.HashTrie
@@ -216,5 +220,29 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
         
         subscribers = (channel !! GetSubscribers).getOrElse(new HashTrie[String, Client])
         subscribers.size must equal(0)
+	}
+	
+	it must "return an error when no channel is specified on a publish message" in {
+	    object TestBayeux extends Bayeux{}
+	    
+	    val message = new Message(null)
+	    val response = TestBayeux.dispatch(message).get
+	    response.error must equal("407:null:no channel was specified")
+	}
+	
+	it must "publish messages to all of the clients in a channel when receiving a publish message" in {
+	    object TestBayeux extends Bayeux{}
+	    
+	    val channel = Channel("/chat/scala")
+	    val client = new Client
+	    channel ! Subscribe(client)
+	    
+	    val message = new Message(Channel("/chat/scala"))
+	    TestBayeux.dispatch(message)
+	    
+	    val queue = Queue[Message]() enqueue message
+	    //sleep to let actors all process messages
+	    Thread.sleep(10)
+	    (client !! GetMessageQueue).getOrElse(Queue[Message]()) must equal(queue)
 	}
 }

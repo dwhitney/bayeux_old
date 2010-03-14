@@ -93,6 +93,7 @@ object Channel{
 case class Subscribe(client: Client){}
 case class Unsubscribe(client: Client){}
 case object GetSubscribers{}
+case class Publish(message: Message){}
 class Channel private (n: String) extends Actor{
 	
 	private var subscriptions = HashTrie[String, Client]()
@@ -102,6 +103,8 @@ class Channel private (n: String) extends Actor{
 	id = n
 	
 	def receive = {
+	    case Publish(message: Message) =>
+            for(key <- subscriptions.keySet) subscriptions(key) ! Publish(message)
 	    case Subscribe(client: Client) => 
 	        subscriptions = subscriptions + (client.uuid -> client)
 	        client ! AddSubscription(this)
