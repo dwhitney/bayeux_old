@@ -108,4 +108,68 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
         response.id must equal(message.id)
         response.timestamp must not be(null)
 	}
+	
+	it must "send an error message when a client is not included in a /meta/disconnect message" in {
+	    object TestBayeux extends Bayeux{}
+        val message = new Message(Channel(Bayeux.META_DISCONNECT))
+        val response = TestBayeux.dispatch(message).get
+        response.successful must be(false)
+        response.error must equal("403:null:either a clientId was not sent, or it was not found")
+	}
+	
+	it must "send a response with the /meta/disconnect channel, the clientId, and successful = true and the client must be stopped" in {
+	    object TestBayeux extends Bayeux{}
+	    val client = new Client
+	    Channel("/chat/scala") ! Subscribe(client)
+	    (Channel("/chat/scala") !! GetSubscribers).getOrElse(HashTrie[String, Client]()).size must equal(1)
+        val message = new Message(Channel(Bayeux.META_DISCONNECT), client)
+        message.id = "myId"
+        val response = TestBayeux.dispatch(message).get
+        response.client must not be(null)
+        response.successful must be(true)
+        //sleep to let the actors process messages or else the test will fail
+        Thread.sleep(1)
+        (Channel("/chat/scala") !! GetSubscribers).getOrElse(HashTrie[String, Client]()).size must equal(0)
+        response.id must equal(message.id)
+        response.client.isRunning must be(false)
+	}
+	
+	it must "send an error message when a client is not included in a /meta/subscribe message" in {
+	    object TestBayeux extends Bayeux{}
+        val message = new Message(Channel(Bayeux.META_SUBSCRIBE))
+        val response = TestBayeux.dispatch(message).get
+        response.successful must be(false)
+        response.error must equal("403:null:either a clientId was not sent, or it was not found")
+	}
+	
+	it must "send an error message when a subscription channel is not included in a /meta/subscribe message" in {
+	    object TestBayeux extends Bayeux{}
+        val message = new Message(Channel(Bayeux.META_SUBSCRIBE), new Client)
+        val response = TestBayeux.dispatch(message).get
+        response.successful must be(false)
+        response.error must equal("406:null:no subscription was specified")
+	}
+	
+	it must """
+	    set the channel to /meta/subscribe
+	    set the clientId
+	    set successful = true
+	    set the id of the response to the id of the request
+	    subscribe the client to the channel
+	""" in {
+	    object TestBayeux extends Bayeux{}
+	    val client = new Client
+        val message = new Message(Channel(Bayeux.META_SUBSCRIBE), client)
+        message.id = "myId"
+        message.subscription = Channel("/chat/scala")
+        val response = TestBayeux.dispatch(message).get
+        response.client must equal(client)
+        response.subscription must equal(message.subscription)
+        response.channel must equal (Channel(Bayeux.META_SUBSCRIBE))
+        response.id must equal (message.id)
+        val channel = Channel("/chat/scala")
+        val subscribers = (channel !! GetSubscribers).getOrElse(new HashTrie[String, Client])
+        subscribers.size must equal(1)
+        subscribers(client.uuid) must equal(client)
+	}
 }

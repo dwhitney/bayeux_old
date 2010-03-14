@@ -102,8 +102,13 @@ class Channel private (n: String) extends Actor{
 	id = n
 	
 	def receive = {
-	    case Subscribe(client: Client) => subscriptions = subscriptions + (client.uuid -> client)
-	    case Unsubscribe(client: Client) => subscriptions = subscriptions - client.uuid
+	    case Subscribe(client: Client) => 
+	        subscriptions = subscriptions + (client.uuid -> client)
+	        client ! AddSubscription(this)
+	    case Unsubscribe(client: Client) => 
+	        subscriptions = subscriptions - client.uuid
+	        //client might not be running if this unsubscribe is due to the client getting a Disconnect
+	        if(client.isRunning) client ! RemoveSubscription(this)
 	    case GetSubscribers => reply(subscriptions)
 		case _ => println("message received")
 	}

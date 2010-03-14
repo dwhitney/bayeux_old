@@ -23,5 +23,6 @@ case class Message(val channel: Channel, val client: Client){
     var connectionType: String = null
     var dateTime: DateTime = new DateTime(DateTimeZone.UTC)
     var timestamp: String = Message.timestampFormatter.print(dateTime)
+    var subscription: Channel = null
     
 }

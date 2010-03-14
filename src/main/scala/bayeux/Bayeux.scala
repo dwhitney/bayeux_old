@@ -1,10 +1,14 @@
 package us.says.bayeux
 
+//akka
+import se.scalablesolutions.akka.actor.ActorRegistry  
+
 object Bayeux{
     
     val META_SUBSCRIBE = "/meta/subscribe"
     val META_HANDSHAKE = "/meta/hanshake"
     val META_CONNECT = "/meta/connect"
+    val META_DISCONNECT = "/meta/disconnect"
     val VERSION = "1.0.0"
     val LONG_POLLING = "long-polling"
     val SUPPORTED_CONNECTION_TYPES = List(LONG_POLLING)
@@ -16,6 +20,7 @@ object Bayeux{
     val ERROR_MISSING_CLIENT_ID = 403
     val ERROR_MISSING_CONNECTION_TYPE = 404
     val ERROR_UNSUPPORTED_CONNECTION_TYPE = 405
+    val ERROR_NO_SUBSCRIPTION_SPECIFIED = 406
 }
 
 trait Bayeux{
@@ -26,19 +31,55 @@ trait Bayeux{
             case Bayeux.META_HANDSHAKE => metaHandshake(message)
             case Bayeux.META_SUBSCRIBE => metaSubscribe(message)
             case Bayeux.META_CONNECT => metaConnect(message)
+            case Bayeux.META_DISCONNECT => metaDisconnect(message)
             case _ => None
         }
     }
     
-    //logic necessary to carry out a connection
+    //logic to carry out a /meta/subscribe message
+    private def metaSubscribe(message: Message): Option[Message] = {
+        message match {
+            //check for missing clientId
+            case m: Message if(m.client == null) => missingClient(m)
+            //check for missing subsciption channel
+            case m: Message if(m.subscription == null) => 
+                error(message,
+                    List[Int](Bayeux.ERROR_NO_SUBSCRIPTION_SPECIFIED),
+                    List[String](null),
+                    "no subscription was specified")
+                    
+            //valid state
+            case _ =>
+                message.subscription ! Subscribe(message.client)
+                val response = new Message(message.channel, message.client)
+                response.successful = true
+                response.subscription = message.subscription
+                response.id = message.id
+                Some(response)
+        }
+    }
+    
+    //logic to carry out a /meta/disconnect message
+    private def metaDisconnect(message: Message): Option[Message] = {
+        message match {
+            //test for missing clientId
+            case m: Message if(m.client == null) => missingClient(m)
+            //valid state
+            case _ =>
+                message.client ! Disconnect
+                val response = new Message(message.channel, message.client)
+                response.successful = true
+                response.id = message.id
+                Some(response)
+                
+        }
+    }
+    
+    //logic necessary to carry out a /meta/connect message
     private def metaConnect(message: Message): Option[Message] = {
         message match {
             //test for missing clientId
-            case m: Message if(m.client == null) =>
-                error(message,
-                    List[Int](Bayeux.ERROR_MISSING_CLIENT_ID),
-                    List[String](null),
-                    "either a clientId was not sent, or it was not found")
+            case m: Message if(m.client == null) => missingClient(m)
             //test for missing connectionType
             case m: Message if(m.connectionType == null) =>
                 error(message,
@@ -60,7 +101,7 @@ trait Bayeux{
         }
     }
     
-    //logic necessary to carry out a handshake
+    //logic necessary to carry out a /meta/handshake message
     private def metaHandshake(message: Message): Option[Message] = {
         
         message match {
@@ -86,7 +127,10 @@ trait Bayeux{
         
     }
     
-    private def metaSubscribe(message: Message): Option[Message] = Some(message)
+    private def missingClient(message: Message): Option[Message] = error(message,
+        List[Int](Bayeux.ERROR_MISSING_CLIENT_ID),
+        List[String](null),
+        "either a clientId was not sent, or it was not found")
     
     //creates an error message with the given copy
     private def error(message: Message, codes: List[Int], args: List[String], copy: String): Option[Message] = {
