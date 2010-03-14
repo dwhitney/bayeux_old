@@ -172,4 +172,49 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
         subscribers.size must equal(1)
         subscribers(client.uuid) must equal(client)
 	}
+	
+	it must "send an error message when a client is not included in a /meta/unsubscribe message" in {
+	    object TestBayeux extends Bayeux{}
+        val message = new Message(Channel(Bayeux.META_UNSUBSCRIBE))
+        val response = TestBayeux.dispatch(message).get
+        response.successful must be(false)
+        response.error must equal("403:null:either a clientId was not sent, or it was not found")
+	}
+	
+	it must "send an error message when a subscription channel is not included in a /meta/unsubscribe message" in {
+	    object TestBayeux extends Bayeux{}
+        val message = new Message(Channel(Bayeux.META_UNSUBSCRIBE), new Client)
+        val response = TestBayeux.dispatch(message).get
+        response.successful must be(false)
+        response.error must equal("406:null:no subscription was specified")
+	}
+	
+	it must """
+	    set the channel to /meta/unsubscribe
+	    set the clientId
+	    set successful = true
+	    set the id of the response to the id of the request
+	    unsubscribe the client to the channel
+	""" in {
+	    object TestBayeux extends Bayeux{}
+	    val client = new Client
+	    val channel = Channel("/chat/scala")
+	    
+	    channel ! Subscribe(client)
+	    var subscribers = (channel !! GetSubscribers).getOrElse(new HashTrie[String, Client])
+        subscribers.size must equal(1)
+        
+        val message = new Message(Channel(Bayeux.META_UNSUBSCRIBE), client)
+        message.id = "myId"
+        message.subscription = Channel("/chat/scala")
+        
+        val response = TestBayeux.dispatch(message).get
+        response.client must equal(client)
+        response.subscription must equal(message.subscription)
+        response.channel must equal (Channel(Bayeux.META_UNSUBSCRIBE))
+        response.id must equal (message.id)
+        
+        subscribers = (channel !! GetSubscribers).getOrElse(new HashTrie[String, Client])
+        subscribers.size must equal(0)
+	}
 }

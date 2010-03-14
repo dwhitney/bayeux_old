@@ -6,6 +6,7 @@ import se.scalablesolutions.akka.actor.ActorRegistry
 object Bayeux{
     
     val META_SUBSCRIBE = "/meta/subscribe"
+    val META_UNSUBSCRIBE = "/meta/unsubscribe"
     val META_HANDSHAKE = "/meta/hanshake"
     val META_CONNECT = "/meta/connect"
     val META_DISCONNECT = "/meta/disconnect"
@@ -28,11 +29,35 @@ trait Bayeux{
     //dispatches messages
     def dispatch(message: Message): Option[Message] = {
         message.channel.name match {
-            case Bayeux.META_HANDSHAKE => metaHandshake(message)
-            case Bayeux.META_SUBSCRIBE => metaSubscribe(message)
             case Bayeux.META_CONNECT => metaConnect(message)
+            case Bayeux.META_SUBSCRIBE => metaSubscribe(message)
+            case Bayeux.META_UNSUBSCRIBE => metaUnsubscribe(message)
+            case Bayeux.META_HANDSHAKE => metaHandshake(message)
             case Bayeux.META_DISCONNECT => metaDisconnect(message)
             case _ => None
+        }
+    }
+    
+    //logic to carry out a /meta/unsubscribe message
+    private def metaUnsubscribe(message: Message): Option[Message] = {
+        message match {
+            //check for missing clientId
+            case m: Message if(m.client == null) => missingClient(m)
+            //check for missing subsciption channel
+            case m: Message if(m.subscription == null) => 
+                error(message,
+                    List[Int](Bayeux.ERROR_NO_SUBSCRIPTION_SPECIFIED),
+                    List[String](null),
+                    "no subscription was specified")
+                    
+            //valid state
+            case _ =>
+                message.subscription ! Unsubscribe(message.client)
+                val response = new Message(message.channel, message.client)
+                response.successful = true
+                response.subscription = message.subscription
+                response.id = message.id
+                Some(response)
         }
     }
     
