@@ -132,7 +132,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
         response.client must not be(null)
         response.successful must be(true)
         //sleep to let the actors process messages or else the test will fail
-        Thread.sleep(1)
+        Thread.sleep(50)
         (Channel("/chat/scala") !! GetSubscribers).getOrElse(HashTrie[String, Client]()).size must equal(0)
         response.id must equal(message.id)
         response.client.isRunning must be(false)
@@ -225,7 +225,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	it must "return an error when no channel is specified on a publish message" in {
 	    object TestBayeux extends Bayeux{}
 	    
-	    val message = new Message(null)
+	    val message = new Message(null, null)
 	    val response = TestBayeux.dispatch(message).get
 	    response.error must equal("407:null:no channel was specified")
 	}
@@ -242,7 +242,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    
 	    val queue = Queue[Message]() enqueue message
 	    //sleep to let actors all process messages
-	    Thread.sleep(10)
+	    Thread.sleep(50)
 	    (client !! GetMessageQueue).getOrElse(Queue[Message]()) must equal(queue)
 	}
 }

@@ -65,7 +65,7 @@ trait Bayeux{
             //valid state
             case _ =>
                 message.subscription ! Unsubscribe(message.client)
-                val response = new Message(message.channel, message.client)
+                val response = Message(channel = message.channel, client = message.client)
                 response.successful = true
                 response.subscription = message.subscription
                 response.id = message.id
@@ -131,7 +131,7 @@ trait Bayeux{
                     "the connectionType specified is unsupported")
             //error free request state
             case _ =>
-                val response = Message(message.channel, message.client)
+                val response = new Message(message.channel, message.client)
                 response.successful = true
                 response.id = message.id
                 Some(response)

@@ -15,6 +15,7 @@ object Client{
     private var clients = new HashTrie[String, Client]()
     
     def getClients: HashTrie[String, Client] = clients
+    def getClient(uuid: String): Option[Client] = clients.get(uuid)
     def clearClients: Unit = clients = new HashTrie[String, Client]
     
 }
