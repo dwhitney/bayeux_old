@@ -15,15 +15,18 @@ import org.joda.time.format.DateTimeFormat
 
 object Message{
     
-    val DATE_FORMAT = "YYYY-MM-dd'T'hh:mm:ss"
     val CHANNEL = "channel"
-    val VERSION = "version"
-    val SUPPORTED_CONNECTION_TYPES = "supportedConnectionTypes"
-    val MINIMUM_VERSION = "minimumVersion"
-    val ID = "id"
     val CLIENT_ID = "clientId"
+    val CONNECTION_TYPE = "connectionType"
+    val DATE_FORMAT = "YYYY-MM-dd'T'hh:mm:ss"
+    val ERROR = "error"
+    val ID = "id"
+    val MINIMUM_VERSION = "minimumVersion"
+    val SUBSCRIPTION = "subscription"
     val SUCCESSFUL = "successful"
-    var ERROR = "error"
+    val SUPPORTED_CONNECTION_TYPES = "supportedConnectionTypes"
+    val TIMESTAMP = "timestamp"
+    val VERSION = "version"
     
     val timestampFormatter = DateTimeFormat.forPattern(DATE_FORMAT)
     
@@ -53,11 +56,19 @@ object Message{
         }
     }
     
+    //pulls the channel field out of the json doc and returns a Channel object.  returns null if it isn't found
     private def extractChannel(json: JValue): Channel = {
         implicit val formats = net.liftweb.json.DefaultFormats
         Channel((json \ Message.CHANNEL).extract[String])
     }
     
+    //pulls the subscription field out of the json doc and returns a Channel object.  returns null if it isn't found
+    private def extractSubscription(json: JValue): Channel = {
+        implicit val formats = net.liftweb.json.DefaultFormats
+        Channel((json \ Message.SUBSCRIPTION).extract[String])
+    }
+    
+    //pulls the clientId field from the json document and fetches the client with that Id.  returns null if not found
     private def extractClient(json: JValue): Client = {
         implicit val formats = net.liftweb.json.DefaultFormats
         val clientId = extractString(json, Message.CLIENT_ID)
@@ -68,6 +79,7 @@ object Message{
         }
     }
     
+    //extracts the id field.  returns null if not found
     private def extractId(json: JValue): String = extractString(json, Message.ID)
     
     //extracts a string from the json with the given fieldName - returns null if not found
@@ -76,6 +88,20 @@ object Message{
         try{ (json \ fieldName).extract[String] } catch { case e: MappingException => null }
     }
     
+    //extracts a boolean from the json with the given fieldName - returns false if not found
+    private def extractBoolean(json: JValue, fieldName: String) = {
+        implicit val formats = net.liftweb.json.DefaultFormats
+        try{ (json \ fieldName).extract[Boolean] } catch { case e: MappingException => false }
+    }
+
+    private def extractDateTime(json: JValue): DateTime = {
+        val timestamp = extractString(json, Message.TIMESTAMP)
+        if(timestamp != null) timestampFormatter.withZone(DateTimeZone.UTC).parseDateTime(timestamp)
+        else null
+    }
+    
+    import net.liftweb.json.JsonAST._
+    private def extractSupportedConnectionTypes(json: JValue): List[String] = for{JString(str) <- (json \ SUPPORTED_CONNECTION_TYPES)} yield str
     
 }
 
@@ -94,8 +120,17 @@ case class Message(
         var version: String = Bayeux.VERSION){
 
     def this(json: JValue) = this(
-        Message.extractChannel(json),
-        Message.extractClient(json))
+        channel = Message.extractChannel(json),
+        client = Message.extractClient(json),
+        connectionType = Message.extractString(json, Message.CONNECTION_TYPE),
+        error = Message.extractString(json, Message.ERROR),
+        id = Message.extractString(json, Message.ID),
+        minimumVersion = Message.extractString(json, Message.MINIMUM_VERSION),
+        subscription = Message.extractSubscription(json),
+        successful = Message.extractBoolean(json, Message.SUCCESSFUL),
+        version = Message.extractString(json, Message.VERSION),
+        dateTime = Message.extractDateTime(json),
+        supportedConnectionTypes = Message.extractSupportedConnectionTypes(json))
 
     var timestamp: String = Message.timestampFormatter.print(dateTime)
     
