@@ -65,10 +65,11 @@ trait Bayeux{
             //valid state
             case _ =>
                 message.subscription ! Unsubscribe(message.client)
-                val response = Message(channel = message.channel, client = message.client)
-                response.successful = true
-                response.subscription = message.subscription
-                response.id = message.id
+                val response = Message(channel = message.channel,
+                    client = message.client,
+                    successful = true,
+                    subscription = message.subscription,
+                    id = message.id)
                 Some(response)
         }
     }
@@ -88,10 +89,10 @@ trait Bayeux{
             //valid state
             case _ =>
                 message.subscription ! Subscribe(message.client)
-                val response = new Message(message.channel, message.client)
-                response.successful = true
-                response.subscription = message.subscription
-                response.id = message.id
+                val response = new Message(message.channel, message.client,
+                    successful = true,
+                    subscription = message.subscription,
+                    id = message.id)
                 Some(response)
         }
     }
@@ -104,9 +105,10 @@ trait Bayeux{
             //valid state
             case _ =>
                 message.client ! Disconnect
-                val response = new Message(message.channel, message.client)
-                response.successful = true
-                response.id = message.id
+                val response = new Message(channel = message.channel, 
+                        client = message.client,
+                        successful = true,
+                        id = message.id)
                 Some(response)
                 
         }
@@ -131,9 +133,9 @@ trait Bayeux{
                     "the connectionType specified is unsupported")
             //error free request state
             case _ =>
-                val response = new Message(message.channel, message.client)
-                response.successful = true
-                response.id = message.id
+                val response = new Message(message.channel, message.client,
+                        successful = true,
+                        id = message.id)
                 Some(response)
         }
     }
@@ -156,9 +158,9 @@ trait Bayeux{
                     "none of the supported connection types match those supported by this implementation of Bayeux")
             //valid message
             case _ =>
-                val response = new Message(Channel(Bayeux.META_HANDSHAKE), new Client)
-                response.successful = true
-                response.id = message.id
+                val response = new Message(Channel(Bayeux.META_HANDSHAKE), new Client,
+                    successful = true,
+                    id = message.id)
                 Some(response)
         }
         
@@ -171,10 +173,10 @@ trait Bayeux{
     
     //creates an error message with the given copy
     private def error(message: Message, codes: List[Int], args: List[String], copy: String): Option[Message] = {
-        val errorResponse = new Message(message.channel)
-        errorResponse.id = message.id
-        errorResponse.successful = false
-        errorResponse.error = String.format("%s:%s:%s", codes.mkString(" "), args.mkString(","), copy)
+        val errorResponse = new Message(channel = message.channel,
+            id = message.id,
+            successful = false,
+            error = String.format("%s:%s:%s", codes.mkString(" "), args.mkString(","), copy))
         Some(errorResponse)
     }
     

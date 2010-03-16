@@ -7,7 +7,10 @@ import se.scalablesolutions.akka.collection.HashTrie
 //lift
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonAST
+import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
+
+
 
 
 class MessageSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
@@ -21,9 +24,15 @@ class MessageSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	}
 	
 	it should "transform a /meta/connect response into a JValue" in {
-	//    val response = new Message(Channel(Bayeux.META_HANDSHAKE), new Client)
-	 //   val json = (Message.CHANNEL -> Bayeux.META_HANDSHAKE)
-	 //   new Message(json)
+	    import net.liftweb.json.JsonParser._
+        val json = parse("""{"data": { "one" : 1, "two": "2", "three": {"four": true}, "five": [6,7,8] }}""")
+        println(json)
+        (json \ "data") match {
+            case JField("data", obj: JObject) => println(obj.values.getClass)
+            case _ => println("not found")
+        }
+        ()
+        
 	    ()
 	}
 	

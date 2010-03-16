@@ -3,11 +3,9 @@ package us.says.bayeux
 //lift
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonAST
+import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.MappingException
-
-//scala
-import scala.collection.mutable.Map
 
 //joda-time
 import org.joda.time.{DateTime, DateTimeZone}
@@ -18,8 +16,10 @@ object Message{
     val CHANNEL = "channel"
     val CLIENT_ID = "clientId"
     val CONNECTION_TYPE = "connectionType"
+    val DATA = "data"
     val DATE_FORMAT = "YYYY-MM-dd'T'hh:mm:ss"
     val ERROR = "error"
+    val EXT = "ext"
     val ID = "id"
     val MINIMUM_VERSION = "minimumVersion"
     val SUBSCRIPTION = "subscription"
@@ -34,8 +34,8 @@ object Message{
         message.channel.name match {
             case Bayeux.META_HANDSHAKE if message.error != null =>
                 var json = (CHANNEL -> message.channel.name) ~
-                (SUCCESSFUL -> message.successful)
-                (ERROR -> message.error)
+                (SUCCESSFUL -> message.successful) ~
+                (ERROR -> message.error) ~
                 (SUPPORTED_CONNECTION_TYPES -> message.supportedConnectionTypes) ~
                 (VERSION -> message.version)
                 if(message.minimumVersion != null) json = json ~ (MINIMUM_VERSION -> message.minimumVersion)
@@ -46,7 +46,7 @@ object Message{
                 var json = (CHANNEL -> message.channel.name) ~
                 (VERSION -> message.version) ~
                 (SUPPORTED_CONNECTION_TYPES -> message.supportedConnectionTypes) ~
-                (CLIENT_ID -> message.client.uuid)
+                (CLIENT_ID -> message.client.uuid) ~
                 (SUCCESSFUL -> message.successful)
                 if(message.minimumVersion != null) json = json ~ (MINIMUM_VERSION -> message.minimumVersion)
                 if(message.id != null) json = json ~ (ID -> message.id)
@@ -94,10 +94,29 @@ object Message{
         try{ (json \ fieldName).extract[Boolean] } catch { case e: MappingException => false }
     }
 
+    //gets the DateTime from Json
     private def extractDateTime(json: JValue): DateTime = {
         val timestamp = extractString(json, Message.TIMESTAMP)
         if(timestamp != null) timestampFormatter.withZone(DateTimeZone.UTC).parseDateTime(timestamp)
         else null
+    }
+    
+    //extracts the data map.  returns an empty if a map isn't found
+    private def extractData(json: JValue): Map[String, Any] = {
+        import net.liftweb.json.JsonParser._
+        (json \ DATA) match {
+            case JField("data", obj: JObject) => obj.values
+            case _ => Map[String, Any]()
+        }
+    }
+    
+    //extracts the ext map.  returns an empty if a map isn't found
+    private def extractExt(json: JValue): Map[String, Any] = {
+        import net.liftweb.json.JsonParser._
+        (json \ EXT) match {
+            case JField("ext", obj: JObject) => obj.values
+            case _ => Map[String, Any]()
+        }
     }
     
     import net.liftweb.json.JsonAST._
@@ -106,32 +125,35 @@ object Message{
 }
 
 case class Message(
-        var channel: Channel = null,
-        var client: Client = null,
-        var connectionType: String = null,
+        val channel: Channel = null,
+        val client: Client = null,
+        val connectionType: String = null,
         var data: Map[String, Any] = Map[String, Any](),
-        var dateTime: DateTime = new DateTime(DateTimeZone.UTC),
-        var error: String = null,
-        var id: String = null,
-        var minimumVersion: String = Bayeux.VERSION,
-        var subscription: Channel = null,
-        var successful: Boolean = false,
-        var supportedConnectionTypes: List[String] = List(Bayeux.LONG_POLLING),
-        var version: String = Bayeux.VERSION){
+        val dateTime: DateTime = new DateTime(DateTimeZone.UTC),
+        val error: String = null,
+        var ext: Map[String, Any] = Map[String, Any](),
+        val id: String = null,
+        val minimumVersion: String = Bayeux.VERSION,
+        val subscription: Channel = null,
+        val successful: Boolean = false,
+        val supportedConnectionTypes: List[String] = List(Bayeux.LONG_POLLING),
+        val version: String = Bayeux.VERSION){
 
     def this(json: JValue) = this(
         channel = Message.extractChannel(json),
         client = Message.extractClient(json),
         connectionType = Message.extractString(json, Message.CONNECTION_TYPE),
         error = Message.extractString(json, Message.ERROR),
+        ext = Message.extractExt(json),
         id = Message.extractString(json, Message.ID),
         minimumVersion = Message.extractString(json, Message.MINIMUM_VERSION),
         subscription = Message.extractSubscription(json),
         successful = Message.extractBoolean(json, Message.SUCCESSFUL),
         version = Message.extractString(json, Message.VERSION),
         dateTime = Message.extractDateTime(json),
-        supportedConnectionTypes = Message.extractSupportedConnectionTypes(json))
+        supportedConnectionTypes = Message.extractSupportedConnectionTypes(json),
+        data = Message.extractData(json))
 
-    var timestamp: String = Message.timestampFormatter.print(dateTime)
+    val timestamp: String = Message.timestampFormatter.print(dateTime)
     
 }
