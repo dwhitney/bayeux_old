@@ -23,17 +23,10 @@ class MessageSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 		()
 	}
 	
-	it should "transform a /meta/connect response into a JValue" in {
-	    import net.liftweb.json.JsonParser._
-        val json = parse("""{"data": { "one" : 1, "two": "2", "three": {"four": true}, "five": [6,7,8] }}""")
-        println(json)
-        (json \ "data") match {
-            case JField("data", obj: JObject) => println(obj.values.getClass)
-            case _ => println("not found")
-        }
-        ()
-        
-	    ()
+	it should "transform a map into a JObject" in {
+	    import us.says.bayeux.Message._
+        val json: JObject = mapToJObject(Map("list" -> List(0,1,2,3), "map" -> Map("foo" -> "bar", "anotherList" -> List(true, false, 3, "four")), "one" -> "1", "two" -> "two", "three" -> 3, "four" -> true, "five" -> null, "six" -> 6.5, "date" -> new java.util.Date().getClass))
+        compact(JsonAST.render(json)) must equal("""{"list":[0,1,2,3],"one":"1","two":"two","five":null,"map":{"foo":"bar","anotherList":[true,false,3,"four"]},"four":true,"three":3,"date":"class java.util.Date","six":6.5}""")
 	}
 	
 }

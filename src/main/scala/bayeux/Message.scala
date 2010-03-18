@@ -29,31 +29,64 @@ object Message{
     val VERSION = "version"
     
     val timestampFormatter = DateTimeFormat.forPattern(DATE_FORMAT)
-    
-    implicit def messageToJson(message: Message): JValue = {
-        message.channel.name match {
-            case Bayeux.META_HANDSHAKE if message.error != null =>
-                var json = (CHANNEL -> message.channel.name) ~
-                (SUCCESSFUL -> message.successful) ~
-                (ERROR -> message.error) ~
-                (SUPPORTED_CONNECTION_TYPES -> message.supportedConnectionTypes) ~
-                (VERSION -> message.version)
-                if(message.minimumVersion != null) json = json ~ (MINIMUM_VERSION -> message.minimumVersion)
-                if(message.id != null) json = json ~ (ID -> message.id)
-                json
-            //create a message representing a /meta/connect response
-            case Bayeux.META_HANDSHAKE => {
-                var json = (CHANNEL -> message.channel.name) ~
-                (VERSION -> message.version) ~
-                (SUPPORTED_CONNECTION_TYPES -> message.supportedConnectionTypes) ~
-                (CLIENT_ID -> message.client.uuid) ~
-                (SUCCESSFUL -> message.successful)
-                if(message.minimumVersion != null) json = json ~ (MINIMUM_VERSION -> message.minimumVersion)
-                if(message.id != null) json = json ~ (ID -> message.id)
-                json
+      
+    //transforms a map into a JObject
+    implicit def mapToJObject(map: Map[String, Any]): JObject = {
+        import net.liftweb.json.JsonAST._
+        import net.liftweb.json.JsonDSL._
+        import net.liftweb.json.Implicits._
+        
+        def transform(m: Map[String, Any]): JObject = JObject(m.map{ case (k: String, x) => JField(k, getField(x)) }.toList)
+            
+        def getField(any: Any): JValue = {
+            any match {
+                case a: Boolean => JBool(a)
+                case a: Double => JDouble(a)
+                case a: Int => JInt(a)
+                case a: String => JString(a)
+                case a: List[Any] => JArray(a.map(getField))
+                case null => JNull
+                case a: Map[String, Any] => transform(a)
+                case a => JString(a.toString)
             }
-            //
         }
+        
+        transform(map)
+    }
+    
+    //transforms a message into json
+    implicit def messageToJson(message: Message): JObject = {
+        import net.liftweb.json.JsonAST
+        import net.liftweb.json.JsonDSL._
+        
+        var json: JObject = null
+        if(message.channel != null) json = json ~ (CHANNEL -> message.channel.name)
+        if(message.client != null) json = json ~ (CLIENT_ID -> message.client.uuid)
+        if(message.connectionType != null) json = json ~ (CONNECTION_TYPE -> message.connectionType)
+        if(message.dateTime != null) json = json ~ (TIMESTAMP -> message.timestamp)
+        if(message.error != null) json = json ~ (ERROR -> message.error)
+        if(message.id != null) json = json ~ (ID -> message.id)
+        if(message.subscription != null) json = json ~ (SUBSCRIPTION -> message.subscription.name)
+        if(message.isResponse) json = json ~ (SUCCESSFUL -> message.successful)
+        if(message.ext.size > 0) json = json ~ message.ext
+        
+        message.channel.name match {
+            case Bayeux.META_HANDSHAKE => 
+                json = json ~ (VERSION -> message.version) ~ (SUPPORTED_CONNECTION_TYPES -> message.supportedConnectionTypes)
+                if(message.minimumVersion != null) json = json ~ (MINIMUM_VERSION -> message.minimumVersion)
+                //add advice
+                ()
+            case Bayeux.META_CONNECT => () //add advice
+            case Bayeux.META_DISCONNECT => () //add advice
+            case Bayeux.META_SUBSCRIBE => () //add advice
+            case Bayeux.META_UNSUBSCRIBE => () //add advice
+            case _ => //add advice
+                json = json ~ message.data
+            
+        }
+        
+        //data, ext, supportedConnectionTypes, version, minimumVersion
+        json
     }
     
     //pulls the channel field out of the json doc and returns a Channel object.  returns null if it isn't found
@@ -133,6 +166,7 @@ case class Message(
         val error: String = null,
         var ext: Map[String, Any] = Map[String, Any](),
         val id: String = null,
+        val isResponse: Boolean = false,
         val minimumVersion: String = Bayeux.VERSION,
         val subscription: Channel = null,
         val successful: Boolean = false,

@@ -69,7 +69,8 @@ trait Bayeux{
                     client = message.client,
                     successful = true,
                     subscription = message.subscription,
-                    id = message.id)
+                    id = message.id,
+                    isResponse = true)
                 Some(response)
         }
     }
@@ -92,7 +93,8 @@ trait Bayeux{
                 val response = new Message(message.channel, message.client,
                     successful = true,
                     subscription = message.subscription,
-                    id = message.id)
+                    id = message.id,
+                    isResponse = true)
                 Some(response)
         }
     }
@@ -108,7 +110,8 @@ trait Bayeux{
                 val response = new Message(channel = message.channel, 
                         client = message.client,
                         successful = true,
-                        id = message.id)
+                        id = message.id,
+                        isResponse = true)
                 Some(response)
                 
         }
@@ -135,7 +138,8 @@ trait Bayeux{
             case _ =>
                 val response = new Message(message.channel, message.client,
                         successful = true,
-                        id = message.id)
+                        id = message.id,
+                        isResponse = true)
                 Some(response)
         }
     }
@@ -160,12 +164,14 @@ trait Bayeux{
             case _ =>
                 val response = new Message(Channel(Bayeux.META_HANDSHAKE), new Client,
                     successful = true,
-                    id = message.id)
+                    id = message.id,
+                    isResponse = true)
                 Some(response)
         }
         
     }
     
+    //common error response for missing client
     private def missingClient(message: Message): Option[Message] = error(message,
         List[Int](Bayeux.ERROR_MISSING_CLIENT_ID),
         List[String](null),
