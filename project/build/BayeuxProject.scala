@@ -1,6 +1,6 @@
 import sbt._
 
-class BayeuxProject(info: ProjectInfo) extends DefaultWebProject(info){
+class BayeuxProject(info: ProjectInfo) extends DefaultProject(info){
 	
 	//val liftJson = "net.liftweb" % "lift-json" % "1.1-M7"
 	val mockito = "org.mockito" % "mockito-core" % "1.8.2" % "test"
