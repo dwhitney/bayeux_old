@@ -92,13 +92,15 @@ object Message{
     //pulls the channel field out of the json doc and returns a Channel object.  returns null if it isn't found
     private def extractChannel(json: JValue): Channel = {
         implicit val formats = net.liftweb.json.DefaultFormats
-        Channel((json \ Message.CHANNEL).extract[String])
+        if((json \ Message.CHANNEL) != JNothing) Channel((json \ Message.CHANNEL).extract[String])
+        else null
     }
     
     //pulls the subscription field out of the json doc and returns a Channel object.  returns null if it isn't found
     private def extractSubscription(json: JValue): Channel = {
         implicit val formats = net.liftweb.json.DefaultFormats
-        Channel((json \ Message.SUBSCRIPTION).extract[String])
+        if((json \ Message.SUBSCRIPTION) != JNothing) Channel((json \ Message.SUBSCRIPTION).extract[String])
+        else null
     }
     
     //pulls the clientId field from the json document and fetches the client with that Id.  returns null if not found

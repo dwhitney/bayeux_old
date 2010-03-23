@@ -29,4 +29,11 @@ class MessageSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
         compact(JsonAST.render(json)) must equal("""{"list":[0,1,2,3],"one":"1","two":"two","five":null,"map":{"foo":"bar","anotherList":[true,false,3,"four"]},"four":true,"three":3,"date":"class java.util.Date","six":6.5}""")
 	}
 	
+	it should "transform in to a Message" in {
+	    import us.says.bayeux.Message._
+	    val json: JObject = mapToJObject(Map("list" -> List(0,1,2,3), "map" -> Map("foo" -> "bar", "anotherList" -> List(true, false, 3, "four")), "one" -> "1", "two" -> "two", "three" -> 3, "four" -> true, "five" -> null, "six" -> 6.5, "date" -> new java.util.Date().getClass))
+	    val message = new Message(json)
+	    ()
+	}
+	
 }
