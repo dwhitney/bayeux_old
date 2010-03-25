@@ -36,4 +36,12 @@ class MessageSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    ()
 	}
 	
+	it should "transform from a message into JSON" in {
+	    import us.says.bayeux.Message._
+
+		val json2 = Message(channel = Channel(Bayeux.META_HANDSHAKE))
+		println(json2)
+	    ()
+	}
+	
 }

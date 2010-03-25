@@ -104,7 +104,7 @@ class Channel private (n: String) extends Actor{
 	
 	def receive = {
 	    case Publish(message: Message) =>
-            for(key <- subscriptions.keySet) subscriptions(key) ! Publish(message)
+            for(key <- subscriptions.keySet) subscriptions(key) ! Enqueue(message)
 	    case Subscribe(client: Client) => 
 	        subscriptions = subscriptions + (client.uuid -> client)
 	        client ! AddSubscription(this)

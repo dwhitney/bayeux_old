@@ -57,10 +57,11 @@ object Message{
     //transforms a message into json
     implicit def messageToJson(message: Message): JObject = {
         import net.liftweb.json.JsonAST
+		import net.liftweb.json.JsonAST._
         import net.liftweb.json.JsonDSL._
-        
-        var json: JObject = null
-        if(message.channel != null) json = json ~ (CHANNEL -> message.channel.name)
+
+		//assuming CHANNEL exists, which it should
+        var json: JObject = (CHANNEL -> message.channel.name)
         if(message.client != null) json = json ~ (CLIENT_ID -> message.client.uuid)
         if(message.connectionType != null) json = json ~ (CONNECTION_TYPE -> message.connectionType)
         if(message.dateTime != null) json = json ~ (TIMESTAMP -> message.timestamp)

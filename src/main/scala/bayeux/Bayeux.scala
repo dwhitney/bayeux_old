@@ -10,7 +10,7 @@ object Bayeux{
     val META_HANDSHAKE = "/meta/handshake"
     val META_CONNECT = "/meta/connect"
     val META_DISCONNECT = "/meta/disconnect"
-    val VERSION = "1.0.0"
+    val VERSION = "1.0"
     val LONG_POLLING = "long-polling"
     val SUPPORTED_CONNECTION_TYPES = List(LONG_POLLING)
     

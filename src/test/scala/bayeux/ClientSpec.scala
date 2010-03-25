@@ -72,12 +72,12 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    (play !! GetSubscribers).getOrElse(HashTrie[String, Client]() + (client.uuid -> client)).size must equal(0)
 	}
 	
-	it must "enqueue a message in its message queue when receiving a publish message" in {
+	it must "enqueue a message in its message queue when receiving an enqueue message" in {
 	    import scala.collection.immutable.Queue
 	    val client = new Client	    
 	    val message = new Message(Channel("/chat/scala"))
 	    
-	    client ! Publish(message)
+	    client ! Enqueue(message)
 	    
 	    val queue = Queue[Message]() enqueue message
 	    (client !! GetMessageQueue).getOrElse(Queue[Message]()) must equal(queue)

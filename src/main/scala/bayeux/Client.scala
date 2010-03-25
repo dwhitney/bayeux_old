@@ -25,10 +25,13 @@ case class RemoveSubscription(channel: Channel){}
 case object GetSubscriptions{}
 case object Disconnect{}
 case object GetMessageQueue{}
+case class Enqueue(message: Message){}
 class Client extends Actor{
     
     private var channels = Set[Channel]()
     private var messageQueue: Queue[Message] = Queue[Message]()
+	private var flusher: MessageFlusher = null
+	private var shouldFlush: Boolean = false
     
     //create uuid, stripping out the dashes as per the bayeux spec
     override val uuid = UUID.randomUUID.toString.replaceAll("-", "")
@@ -40,8 +43,13 @@ class Client extends Actor{
     Client.clients = Client.clients.update(uuid, this)
     
     def receive = {
-        case Publish(message: Message) =>
-            messageQueue = messageQueue enqueue message
+		case SetFlusher(f: MessageFlusher) => 
+			this.flusher = f
+			if(shouldFlush){
+				flusher ! Flush
+				shouldFlush = false
+			}
+		case Enqueue(message: Message) => processMessage(message)
         case GetMessageQueue => reply(messageQueue)
         case AddSubscription(channel: Channel) =>
             //checking to see if the channel is already subscribed to, because Channel will call AddSubscription when a 
@@ -64,5 +72,28 @@ class Client extends Actor{
             stop
         case _ => println("client received an unknown message")
     }
+
+
+
+	//this will enqueue every message sent this way, and determine if the messageQueue should be flushed to the flusher, if one exists
+	private def processMessage(message: Message): Unit = {
+		messageQueue = messageQueue enqueue message
+		message.channel.name match {
+			case Bayeux.META_SUBSCRIBE => flush
+			case Bayeux.META_HANDSHAKE => flush
+			case Bayeux.META_DISCONNECT => flush
+			case Bayeux.META_CONNECT => ()
+			case Bayeux.META_SUBSCRIBE => ()
+			case Bayeux.META_UNSUBSCRIBE => ()
+			case _ => flush
+		}
+	}
+	
+	//either tells the flusher to ask for a flush, or sets the shouldFlush flag to true,
+	//so when a flusher is set, it will automatically ask it to flush
+	private def flush: Unit = {
+		if(flusher != null) flusher ! Flush
+		else shouldFlush = true
+	}
     
 }
