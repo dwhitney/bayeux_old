@@ -71,4 +71,16 @@ class MessageFlusherSpec extends FlatSpec with MustMatchers with BeforeAndAfterE
 		()
 	}
 	
+	it should "immediately flush upon invocation of the get method" in {
+		val client = new Client()		
+		val message = new Message(channel = Channel(Bayeux.META_CONNECT), client = client)
+		val flusher = new MessageFlusher(message)
+		
+		Thread.sleep(100)
+		
+		flusher.get must equal(List(message))
+		
+		()
+	}
+		
 }

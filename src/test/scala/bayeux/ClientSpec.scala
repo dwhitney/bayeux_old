@@ -83,4 +83,14 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    (client !! GetMessageQueue).getOrElse(Queue[Message]()) must equal(queue)
 	}
 	
+	it must "flush a list of messages when the Flush message is sent" in {
+	    import scala.collection.immutable.Queue
+	    val client = new Client	    
+	    val message = new Message(Channel("/chat/scala"))
+	    
+	    client ! Enqueue(message)
+	    
+	    List(message) must equal ((client !! Flush).getOrElse(List[Message]()))
+	}
+	
 }

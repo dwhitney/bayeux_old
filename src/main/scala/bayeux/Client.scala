@@ -26,6 +26,7 @@ case object GetSubscriptions{}
 case object Disconnect{}
 case object GetMessageQueue{}
 case class Enqueue(message: Message){}
+
 class Client extends Actor{
     
     private var channels = Set[Channel]()
@@ -50,6 +51,10 @@ class Client extends Actor{
 				shouldFlush = false
 			}
 		case Enqueue(message: Message) => processMessage(message)
+		case Flush => 
+		    val messages = messageQueue.toList
+		    messageQueue = Queue[Message]()
+		    reply(messages)
         case GetMessageQueue => reply(messageQueue)
         case AddSubscription(channel: Channel) =>
             //checking to see if the channel is already subscribed to, because Channel will call AddSubscription when a 
