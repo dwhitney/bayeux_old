@@ -7,7 +7,7 @@ object Bayeux{
     
     val META_SUBSCRIBE = "/meta/subscribe"
     val META_UNSUBSCRIBE = "/meta/unsubscribe"
-    val META_HANDSHAKE = "/meta/hanshake"
+    val META_HANDSHAKE = "/meta/handshake"
     val META_CONNECT = "/meta/connect"
     val META_DISCONNECT = "/meta/disconnect"
     val VERSION = "1.0.0"
