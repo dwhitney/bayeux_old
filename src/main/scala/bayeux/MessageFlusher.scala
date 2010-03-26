@@ -12,11 +12,15 @@ import java.util.concurrent.{Future, TimeUnit}
 case object Flush{}
 case class SetFlusher(flusher: MessageFlusher){}
 
-class MessageFlusher(val message: Message)
+class MessageFlusher(val messages: List[Message])
 	extends Future[List[Message]] 
-	with Actor{
+	with Actor
+	with Bayeux{
 	
 	val created = new DateTime
+	
+	//all clients should be the same
+	val client = if(messages.size > 0 ) messages(0).client else null
 	
 	//keeps track of when the flusher should flush.  This is essential to the isDone method, explained below;
 	private var shouldFlush = false
@@ -24,8 +28,16 @@ class MessageFlusher(val message: Message)
 	start
 	
 	//tell the client that this instance is its MessageFlusher
-	message.client ! SetFlusher(this)
-	message.client ! Enqueue(message)
+	client ! SetFlusher(this)
+	
+	//dispatch all messages from constructor
+	messages.foreach{m: Message =>
+		dispatch(m) match {
+			//enqueue messages from dispatch if responses come back
+			case Some(msg: Message) => client ! Enqueue(msg)
+			case None => ()
+		}
+	}
 
 	
 	/**
@@ -38,7 +50,7 @@ class MessageFlusher(val message: Message)
 	**/
 	def get(timeout: Long, unit: TimeUnit): List[Message] = {
 	    shouldFlush = false
-	    (message.client !! (Flush, timeout)).getOrElse(Nil)
+	    (client !! (Flush, timeout)).getOrElse(Nil)
 	}
 	
 	/**
@@ -56,7 +68,7 @@ class MessageFlusher(val message: Message)
 	 * shouldFlush will be true if the client has signaled to the flusher that it has received a message
 	 * that needs to be sent to the client immediately.
 	**/
-	def isDone = ((new DateTime().getMillis - created.getMillis) > 10000 || shouldFlush)
+	def isDone = ((new DateTime().getMillis - created.getMillis) > Bayeux.CONNECTION_INTERVAL || shouldFlush)
 	
 	/**
 	 * used to receive messages from the Client for whom this is a MessageFlusher

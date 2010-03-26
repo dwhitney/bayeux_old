@@ -109,9 +109,9 @@ object Message{
         implicit val formats = net.liftweb.json.DefaultFormats
         val clientId = extractString(json, Message.CLIENT_ID)
         if(clientId != null){
-            Client.getClient(clientId).getOrElse(null)
+            Client.getClient(clientId).getOrElse(new Client)
         }else{
-            null
+            new Client
         }
     }
     

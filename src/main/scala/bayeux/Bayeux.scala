@@ -13,6 +13,7 @@ object Bayeux{
     val VERSION = "1.0"
     val LONG_POLLING = "long-polling"
     val SUPPORTED_CONNECTION_TYPES = List(LONG_POLLING)
+	var CONNECTION_INTERVAL = 1000 * 5 * 1 //one minute
     
     
     //error codes - don't know if there is a canonical set

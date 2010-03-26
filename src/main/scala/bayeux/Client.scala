@@ -45,10 +45,10 @@ class Client extends Actor{
     
     def receive = {
 		case SetFlusher(f: MessageFlusher) => 
-			this.flusher = f
+			flusher = f
 			if(shouldFlush){
-				flusher ! Flush
 				shouldFlush = false
+				flusher ! Flush
 			}
 		case Enqueue(message: Message) => processMessage(message)
 		case Flush => 
