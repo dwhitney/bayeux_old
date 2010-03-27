@@ -8,6 +8,7 @@ import se.scalablesolutions.akka.actor._
 import se.scalablesolutions.akka.stm.HashTrie
 
 //java
+import java.util.concurrent.{Future, TimeUnit}
 import java.util.UUID
 
 //scala
@@ -36,12 +37,15 @@ case object Disconnect{}
 case object GetMessageQueue{}
 case class Enqueue(message: Message){}
 case object GarbageCollect{}
+case object Flush{}
+case object IsDone{}
 
-class Client private() extends Actor{
+class Client private()
+    extends Actor
+    with Future[List[Message]]{
     
     private var channels = Set[Channel]()
     private var messageQueue: Queue[Message] = Queue[Message]()
-	private var flusher: MessageFlusher = null
 	private var shouldFlush: Boolean = false
     private var lastMetaConnect: DateTime = new DateTime
     
@@ -53,11 +57,39 @@ class Client private() extends Actor{
     
     log.debug("Client Created %s", this)
     
+    /**
+	 * get will always ask the client to flush its messages.
+	**/
+	def get: List[Message] = get(1000, TimeUnit.MILLISECONDS)
+	
+	/**
+	 * get will always ask the client to flush its messages.  we use message passing here to avoid concurrency issues
+	**/
+	def get(timeout: Long, unit: TimeUnit): List[Message] = (this !! (Flush, timeout)).getOrElse(Nil)
+	
+	/**
+	 * always returns false.  will change if I see a reason to.
+	**/
+	def isCancelled: Boolean = false
+	
+	/**
+	 * always returns false.  will change if I see a reason to.
+	**/
+	def cancel(mayInterruptIfRunning: Boolean): Boolean = false
+	
+	/**
+	 * This method will only return true if shouldFlush is true, or the timeout has been reached.
+	**/
+	def isDone = (this !! (IsDone, 1000)).getOrElse(false)
+    
     def receive = {
-		case SetFlusher(f: MessageFlusher) =>
-		    log.debug("Client %s received SetFlusher(Client %s)", this, f)
-			flusher = f
-			if(shouldFlush) flush
+        case IsDone =>
+            val done = (((new DateTime().getMillis - lastMetaConnect.getMillis) > Bayeux.TIMEOUT_VALUE) || shouldFlush)
+            if(done){
+                log.debug("Client %s IsDone", this)
+                shouldFlush = false
+            }
+            reply(done)
 		case Enqueue(message: Message) => 
 		    log.debug("Client %s received Enqueue(Client %s)", this, message)
 		    processMessage(message)
@@ -104,7 +136,7 @@ class Client private() extends Actor{
 
 
 
-	//this will enqueue every message sent this way, and determine if the messageQueue should be flushed to the flusher, if one exists
+	//this will enqueue every message sent this way, and determine if the messageQueue should be flushed
 	private def processMessage(message: Message): Unit = {
 		messageQueue = messageQueue enqueue message
 		message.channel.name match {
@@ -126,15 +158,6 @@ class Client private() extends Actor{
 		}
 	}
 	
-	//either tells the flusher to ask for a flush, or sets the shouldFlush flag to true,
-	//so when a flusher is set, it will automatically ask it to flush
-	private def flush: Unit = {
-		if(flusher != null){
-		    flusher ! Flush
-		    //set the flusher to null, because it's going to get stopped.
-		    flusher = null
-		    shouldFlush = false
-	    }else shouldFlush = true  
-	}
+	private def flush: Unit = shouldFlush = true
     
 }
