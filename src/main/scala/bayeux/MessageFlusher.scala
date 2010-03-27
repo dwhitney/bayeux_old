@@ -34,10 +34,6 @@ class MessageFlusher private (val messages: List[Message])
 	//keeps track of when the flusher should flush.  This is essential to the isDone method, explained below;
 	private var shouldFlush = false
 	
-	
-	//tell the client that this instance is its MessageFlusher
-	client ! SetFlusher(this)
-	
 	private var responses: List[Message] = Nil
 	
 	//dispatch all messages from constructor
@@ -48,7 +44,9 @@ class MessageFlusher private (val messages: List[Message])
 			    for(m <- msgs) responses = m :: responses
 			    shouldFlush = true
 		    }
-			case None => ()
+			case None => 
+			    //tell the client that this instance is its MessageFlusher.  this connection is going to wait for messages to show
+            	client ! SetFlusher(this)
 		}
 	}
 
@@ -78,7 +76,7 @@ class MessageFlusher private (val messages: List[Message])
 	 * shouldFlush will be true if the client has signaled to the flusher that it has received a message
 	 * that needs to be sent to the client immediately.
 	**/
-	def isDone = ((new DateTime().getMillis - created.getMillis) > Bayeux.TIMEOUT_VALUE || shouldFlush)
+	def isDone = (((new DateTime().getMillis - created.getMillis) > Bayeux.TIMEOUT_VALUE) || shouldFlush)
 	
 	case object GetMessages{}
 	/**

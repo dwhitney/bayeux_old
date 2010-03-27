@@ -84,8 +84,6 @@ object Channel{
 	def all: HashTrie[String, Channel] = channels
 
 	def clearChannels: Unit = channels = new HashTrie[String, Channel]()
-
-    def main(args: Array[String]) = println("Hello World!")
 	
 }
 

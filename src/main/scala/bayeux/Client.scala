@@ -49,10 +49,7 @@ class Client private() extends Actor{
     def receive = {
 		case SetFlusher(f: MessageFlusher) => 
 			flusher = f
-			if(shouldFlush){
-				shouldFlush = false
-				flusher ! Flush
-			}
+			if(shouldFlush) flush
 		case Enqueue(message: Message) => processMessage(message)
 		case Flush => 
 		    val messages = messageQueue.toList
@@ -90,7 +87,7 @@ class Client private() extends Actor{
 			case Bayeux.META_SUBSCRIBE => flush
 			case Bayeux.META_HANDSHAKE => flush
 			case Bayeux.META_DISCONNECT => flush
-			case Bayeux.META_CONNECT if message.id != null && message.id.toString.equals("2") => 
+			case Bayeux.META_CONNECT if message.id != null && message.id.toString.matches("[1234]") => 
 			    //if this is the second message from the client, it's probably the first connect message, and we should 
 			    //flush immediatly because that's what the jquery client seems to want?... dunno why
 			    message.advice = Bayeux.DEFAULT_ADVICE
@@ -105,8 +102,12 @@ class Client private() extends Actor{
 	//either tells the flusher to ask for a flush, or sets the shouldFlush flag to true,
 	//so when a flusher is set, it will automatically ask it to flush
 	private def flush: Unit = {
-		if(flusher != null) flusher ! Flush
-		else shouldFlush = true
+		if(flusher != null){
+		    flusher ! Flush
+		    //set the flusher to null, because it's going to get stopped.
+		    flusher = null
+		    shouldFlush = false
+	    }else shouldFlush = true  
 	}
     
 }
