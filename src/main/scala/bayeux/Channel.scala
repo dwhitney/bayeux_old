@@ -102,16 +102,20 @@ class Channel private (n: String) extends Actor{
 	
 	def receive = {
 	    case Publish(message: Message) =>
+	        log.debug("Channel %s received Publish(%s)", this, message)
             for(key <- subscriptions.keySet) if(subscriptions(key) != message.client) subscriptions(key) ! Enqueue(message)
 	    case Subscribe(client: Client) => 
+	        log.debug("Channel %s received Subscribe(%s)", this, client)
 	        subscriptions = subscriptions + (client.uuid -> client)
 	        client ! AddSubscription(this)
 	    case Unsubscribe(client: Client) => 
+	        log.debug("Channel %s received Unsubscribe(%s)", this, client)
 	        subscriptions = subscriptions - client.uuid
 	        //client might not be running if this unsubscribe is due to the client getting a Disconnect
 	        if(client.isRunning) client ! RemoveSubscription(this)
-	    case GetSubscribers => reply(subscriptions)
-		case _ => println("message received")
+	    case GetSubscribers => 
+	        log.debug("Channel %s received GetSubscribers", this)
+	        reply(subscriptions)
 	}
 	
 }

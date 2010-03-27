@@ -24,7 +24,6 @@ object Client{
     def apply: Client = {
         val client = new Client
         client.start
-        println("Client Created: " + client)
         client
     }
     
@@ -52,19 +51,26 @@ class Client private() extends Actor{
     //add to the clients hash
     Client.clients = Client.clients.update(uuid, this)
     
-    log.debug("created %s", this)
+    log.debug("Client Created %s", this)
     
     def receive = {
-		case SetFlusher(f: MessageFlusher) => 
+		case SetFlusher(f: MessageFlusher) =>
+		    log.debug("Client %s received SetFlusher(Client %s)", this, f)
 			flusher = f
 			if(shouldFlush) flush
-		case Enqueue(message: Message) => processMessage(message)
+		case Enqueue(message: Message) => 
+		    log.debug("Client %s received Enqueue(Client %s)", this, message)
+		    processMessage(message)
 		case Flush => 
+		    log.debug("Client %s received Flush", this)
 		    val messages = messageQueue.toList
 		    messageQueue = Queue[Message]()
 		    reply(messages)
-        case GetMessageQueue => reply(messageQueue)
+        case GetMessageQueue => 
+            log.debug("Client %s received GetMessageQueue")
+            reply(messageQueue)
         case AddSubscription(channel: Channel) =>
+            log.debug("Client %s received AddSubscription(Client %s)", this, channel)
             //checking to see if the channel is already subscribed to, because Channel will call AddSubscription when a 
             //client is subscribed, and we want to avoid infinite calls back and forth
             if(!channels.contains(channel)){
@@ -72,6 +78,7 @@ class Client private() extends Actor{
                 channel ! Subscribe(this)
             }
         case RemoveSubscription(channel: Channel) =>
+            log.debug("Client %s received RemoveSubscription(Client %s)", this, channel)
             //checking to see if the channel is already removed, because Channel will call RemoveSubscription when a 
             //client is unsubscribed, and we want to avoid infinite calls back and forth
             if(channels.contains(channel)){
@@ -80,9 +87,15 @@ class Client private() extends Actor{
             }
         //if this client has been around longer than the Bayeux.TIMEOUT_VALUE + 10 seconds, then stop it
         case GarbageCollect =>
-            if((new DateTime().getMillis - lastMetaConnect.getMillis) > (Bayeux.TIMEOUT_VALUE + 10000)) this ! Disconnect
-        case GetSubscriptions => reply(channels)
+            if((new DateTime().getMillis - lastMetaConnect.getMillis) > (Bayeux.TIMEOUT_VALUE + 10000)){
+                this ! Disconnect
+                log.debug("Client %s has been GarbageCollect'd", this)
+            }    
+        case GetSubscriptions => 
+            log.debug("Client %s received GetSubscriptions", this)
+            reply(channels)
         case Disconnect =>
+            log.debug("Client %s received Disconnect", this)
             //unsubscribe to all channels and call stop
             channels.foreach(_ ! Unsubscribe(this))
             stop

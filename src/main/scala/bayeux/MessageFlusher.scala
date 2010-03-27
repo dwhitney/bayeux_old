@@ -87,9 +87,13 @@ class MessageFlusher private (val messages: List[Message])
 	    //for example, a publish message like /chat/scala or a handshake message like /meta/handshake
 	    //setting shouldFlush to true will cause the isDone method to return true, which will tell the thing awaiting on 
 	    //this Future that it's ready to send some data
-		case Flush => shouldFlush = true
+		case Flush => {
+		    log.debug("MessageFlusher %s received Flush from %s", this, sender)
+		    shouldFlush = true
+	    }
         //returns the responses list if it's not empty, or else it gets messages from the client
 		case GetMessages =>
+		    log.debug("MessageFlusher %s received GetMessages", this)
 		    shouldFlush = false
     	    if(!(responses.size == 0)) reply(responses)
     	    else reply((client !! (Flush, timeout)).getOrElse(Nil))

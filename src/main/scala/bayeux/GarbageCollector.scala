@@ -11,7 +11,7 @@ object GarbageCollector extends Actor{
     def receive = {
         case GarbageCollect => 
             ActorRegistry.actorsFor(classOf[Client]) foreach { client: Client => 
-                log.debug("inspecting %s", client)
+                log.debug("GarbageCollector is inspecting %s", client)
                 if(client.isRunning) client ! GarbageCollect
             }
     }
