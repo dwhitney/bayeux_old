@@ -1,7 +1,7 @@
 package us.says.bayeux
 
-//scala
-import scala.collection.immutable.Queue
+//joda time
+import org.joda.time.DateTime
 
 //akka
 import se.scalablesolutions.akka.actor._
@@ -9,6 +9,9 @@ import se.scalablesolutions.akka.collection.HashTrie
 
 //java
 import java.util.UUID
+
+//scala
+import scala.collection.immutable.Queue
 
 object Client{
     
@@ -21,6 +24,7 @@ object Client{
     def apply: Client = {
         val client = new Client
         client.start
+        println("Client Created: " + client)
         client
     }
     
@@ -32,6 +36,7 @@ case object GetSubscriptions{}
 case object Disconnect{}
 case object GetMessageQueue{}
 case class Enqueue(message: Message){}
+case object GarbageCollect{}
 
 class Client private() extends Actor{
     
@@ -39,6 +44,7 @@ class Client private() extends Actor{
     private var messageQueue: Queue[Message] = Queue[Message]()
 	private var flusher: MessageFlusher = null
 	private var shouldFlush: Boolean = false
+    private var lastMetaConnect: DateTime = new DateTime
     
     //create uuid, stripping out the dashes as per the bayeux spec
     override val uuid = UUID.randomUUID.toString.replaceAll("-", "")
@@ -70,6 +76,9 @@ class Client private() extends Actor{
                 channels = channels - channel
                 channel ! Unsubscribe(this)
             }
+        //if this client has been around longer than the Bayeux.TIMEOUT_VALUE + 10 seconds, then stop it
+        case GarbageCollect =>
+            if((new DateTime().getMillis - lastMetaConnect.getMillis) > (Bayeux.TIMEOUT_VALUE + 10000)) stop
         case GetSubscriptions => reply(channels)
         case Disconnect =>
             //unsubscribe to all channels and call stop
@@ -90,9 +99,12 @@ class Client private() extends Actor{
 			case Bayeux.META_CONNECT if message.id != null && message.id.toString.matches("[1234]") => 
 			    //if this is the second message from the client, it's probably the first connect message, and we should 
 			    //flush immediatly because that's what the jquery client seems to want?... dunno why
+			    lastMetaConnect = new DateTime
 			    message.advice = Bayeux.DEFAULT_ADVICE
 			    flush
-			case Bayeux.META_CONNECT => ()
+			case Bayeux.META_CONNECT => 
+			    lastMetaConnect = new DateTime
+			    ()
 			case Bayeux.META_SUBSCRIBE => ()
 			case Bayeux.META_UNSUBSCRIBE => ()
 			case _ => flush
