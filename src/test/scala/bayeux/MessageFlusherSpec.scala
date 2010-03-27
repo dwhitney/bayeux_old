@@ -18,13 +18,13 @@ class MessageFlusherSpec extends FlatSpec with MustMatchers with BeforeAndAfterE
 	override def beforeEach: Unit = Channel.clearChannels
 	
 	"A MessageFlusher" should "construct normally" in {
-		val message = new Message(channel = Channel("/chat/scala"), client = new Client)
+		val message = new Message(channel = Channel("/chat/scala"), client = Client.apply)
 		val flusher = new MessageFlusher(List(message))
 		()
 	}
 	
 	it should "immediately flush upon receiving a /meta/handshake message" in {
-		val client = new Client()		
+		val client = Client.apply	
 		val message = new Message(channel = Channel(Bayeux.META_HANDSHAKE), client = client)
 		val flusher = new MessageFlusher(List(message))
 		
@@ -36,7 +36,7 @@ class MessageFlusherSpec extends FlatSpec with MustMatchers with BeforeAndAfterE
 	}
 	
 	it should "immediately flush upon receiving a /meta/subscribe message" in {
-		val client = new Client()		
+		val client = Client.apply	
 		val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), client = client)
 		val flusher = new MessageFlusher(List(message))
 		
@@ -48,7 +48,7 @@ class MessageFlusherSpec extends FlatSpec with MustMatchers with BeforeAndAfterE
 	}
 	
 	it should "immediately flush upon receiving a /meta/disconnect message" in {
-		val client = new Client()		
+		val client = Client.apply	
 		val message = new Message(channel = Channel(Bayeux.META_DISCONNECT), client = client)
 		val flusher = new MessageFlusher(List(message))
 		
@@ -60,7 +60,7 @@ class MessageFlusherSpec extends FlatSpec with MustMatchers with BeforeAndAfterE
 	}
 	
 	it should "immediately flush upon receiving a publish message" in {
-		val client = new Client()		
+		val client = Client.apply	
 		val message = new Message(channel = Channel("/chat/scala"), client = client)
 		val flusher = new MessageFlusher(List(message))
 		
@@ -72,7 +72,7 @@ class MessageFlusherSpec extends FlatSpec with MustMatchers with BeforeAndAfterE
 	}
 	
 	it should "immediately flush upon invocation of the get method" in {
-		val client = new Client()		
+		val client = Client.apply	
 		val message = new Message(channel = Channel(Bayeux.META_CONNECT), client = client)
 		val flusher = new MessageFlusher(List(message))
 		

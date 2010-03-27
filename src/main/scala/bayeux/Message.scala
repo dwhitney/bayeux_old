@@ -111,9 +111,9 @@ object Message{
         implicit val formats = net.liftweb.json.DefaultFormats
         val clientId = extractString(json, Message.CLIENT_ID)
         if(clientId != null){
-            Client.getClient(clientId).getOrElse(new Client)
+            Client.getClient(clientId).getOrElse(Client.apply)
         }else{
-            new Client
+            Client.apply
         }
     }
     
@@ -163,7 +163,7 @@ object Message{
 }
 
 case class Message(
-        val advice: Map[String, Any] = Map[String, Any](),
+        var advice: Map[String, Any] = Map[String, Any](),
         val channel: Channel = null,
         val client: Client = null,
         val connectionType: String = null,

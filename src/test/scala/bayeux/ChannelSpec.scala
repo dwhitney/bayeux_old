@@ -113,7 +113,7 @@ class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	}
 	
 	it should "take subscriptions" in {
-	    val client = new Client
+	    val client = Client.apply
 
 	    val channel = Channel("/chat/scala")
 	    channel.start
@@ -127,7 +127,7 @@ class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	}
 	
 	it should "take unsubscriptions" in {
-	    val client = new Client
+	    val client = Client.apply
 
 	    val channel = Channel("/chat/scala")
 	    channel.start
@@ -149,7 +149,7 @@ class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	it must "publish messages to all of the clients in a channel when receiving a publish message" in {
 	    import scala.collection.immutable.Queue
 	    val channel = Channel("/chat/scala")
-	    val client = new Client
+	    val client = Client.apply
 	    channel ! Subscribe(client)
 	    
 	    val message = new Message(channel = Channel("/chat/scala"))

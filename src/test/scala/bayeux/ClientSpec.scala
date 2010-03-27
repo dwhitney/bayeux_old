@@ -12,14 +12,14 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	}
 	
 	"A Client" should "construct normally and add itself to the clients list" in {
-		val client = new Client
+		val client = Client.apply
 		val clients = Client.getClients
 		client must equal(clients.get(client.uuid).get)
 		()
 	}
 	
 	it should "add a channel to its subscriptions when receiving a Subscribe message" in {
-	    val client = new Client
+	    val client = Client.apply
 	    client.start
 	    val channel = Channel("/chat/scala")
 	    client ! AddSubscription(channel)
@@ -32,7 +32,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	}
 	
 	it should "remove a channel from its subscriptions when receiving a Subscribe message" in {
-	    val client = new Client
+	    val client = Client.apply
 	    client.start
 	    val channel = Channel("/chat/scala")
 	    client ! AddSubscription(channel)
@@ -52,7 +52,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	}
 	
 	it should "unsubscribe to all channels and stop when receiving a Disconnect" in {
-	    val client = new Client
+	    val client = Client.apply
 	    client.start
 	    
 	    val scala = Channel("/chat/scala")
@@ -74,7 +74,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it must "enqueue a message in its message queue when receiving an enqueue message" in {
 	    import scala.collection.immutable.Queue
-	    val client = new Client	    
+	    val client = Client.apply	    
 	    val message = new Message(channel = Channel("/chat/scala"))
 	    
 	    client ! Enqueue(message)
@@ -85,7 +85,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it must "flush a list of messages when the Flush message is sent" in {
 	    import scala.collection.immutable.Queue
-	    val client = new Client	    
+	    val client = Client.apply	    
 	    val message = new Message(channel = Channel("/chat/scala"))
 	    
 	    client ! Enqueue(message)

@@ -13,7 +13,13 @@ object Bayeux{
     val VERSION = "1.0"
     val LONG_POLLING = "long-polling"
     val SUPPORTED_CONNECTION_TYPES = List(LONG_POLLING)
-	var CONNECTION_INTERVAL = 1000 * 30 * 1 //one minute
+    val TIMEOUT = "timeout"
+	var TIMEOUT_VALUE = 1000 * 30 * 1 //one minute
+	val INTERVAL = "interval"
+	val INTERVAL_VALUE = 0
+	val RECONNECT = "reconnect"
+	val RETRY = "retry"
+	val DEFAULT_ADVICE = Map(INTERVAL -> INTERVAL_VALUE, RECONNECT -> RETRY, TIMEOUT -> TIMEOUT_VALUE)
     
     
     //error codes - don't know if there is a canonical set
@@ -159,6 +165,7 @@ trait Bayeux{
                         successful = true,
                         id = message.id,
                         isResponse = true)
+                        
                 message.client ! Enqueue(response)
                 None
         }
@@ -184,9 +191,10 @@ trait Bayeux{
             case _ =>
                 val response = new Message(
                     channel = Channel(Bayeux.META_HANDSHAKE), 
-                    client = new Client,
+                    client = Client.apply,
                     successful = true,
                     id = message.id,
+                    advice = Bayeux.DEFAULT_ADVICE,
                     isResponse = true)
                 Some(List(response))
         }

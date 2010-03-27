@@ -37,7 +37,6 @@ class MessageFlusher(val messages: List[Message])
 		dispatch(m) match {
 			//if a message is returned, we should send it back to the client immediately, so we append it to responses, and set shouldFlush to true
 			case Some(msgs: List[Message]) => {
-			    println(msgs)
 			    for(m <- msgs) responses = m :: responses
 			    shouldFlush = true
 		    }
@@ -71,7 +70,7 @@ class MessageFlusher(val messages: List[Message])
 	 * shouldFlush will be true if the client has signaled to the flusher that it has received a message
 	 * that needs to be sent to the client immediately.
 	**/
-	def isDone = ((new DateTime().getMillis - created.getMillis) > Bayeux.CONNECTION_INTERVAL || shouldFlush)
+	def isDone = ((new DateTime().getMillis - created.getMillis) > Bayeux.TIMEOUT_VALUE || shouldFlush)
 	
 	case object GetMessages{}
 	/**

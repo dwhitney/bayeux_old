@@ -18,6 +18,12 @@ object Client{
     def getClient(uuid: String): Option[Client] = clients.get(uuid)
     def clearClients: Unit = clients = new HashTrie[String, Client]
     
+    def apply: Client = {
+        val client = new Client
+        client.start
+        client
+    }
+    
 }
 
 case class AddSubscription(channel: Channel){}
@@ -27,7 +33,7 @@ case object Disconnect{}
 case object GetMessageQueue{}
 case class Enqueue(message: Message){}
 
-class Client extends Actor{
+class Client private() extends Actor{
     
     private var channels = Set[Channel]()
     private var messageQueue: Queue[Message] = Queue[Message]()
@@ -36,9 +42,6 @@ class Client extends Actor{
     
     //create uuid, stripping out the dashes as per the bayeux spec
     override val uuid = UUID.randomUUID.toString.replaceAll("-", "")
-    
-    //start actor by default
-    start
     
     //add to the clients hash
     Client.clients = Client.clients.update(uuid, this)
@@ -87,6 +90,11 @@ class Client extends Actor{
 			case Bayeux.META_SUBSCRIBE => flush
 			case Bayeux.META_HANDSHAKE => flush
 			case Bayeux.META_DISCONNECT => flush
+			case Bayeux.META_CONNECT if message.id != null && message.id.toString.equals("2") => 
+			    //if this is the second message from the client, it's probably the first connect message, and we should 
+			    //flush immediatly because that's what the jquery client seems to want?... dunno why
+			    message.advice = Bayeux.DEFAULT_ADVICE
+			    flush
 			case Bayeux.META_CONNECT => ()
 			case Bayeux.META_SUBSCRIBE => ()
 			case Bayeux.META_UNSUBSCRIBE => ()
