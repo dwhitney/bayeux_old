@@ -2,7 +2,7 @@ package us.says.bayeux
 
 import org.scalatest.{FlatSpec, BeforeAndAfterEach}
 import org.scalatest.matchers.MustMatchers
-import se.scalablesolutions.akka.collection.HashTrie
+import se.scalablesolutions.akka.stm.HashTrie
 
 //lift
 import net.liftweb.json.JsonAST.JValue

@@ -6,7 +6,7 @@ import scala.collection.immutable.Queue
 //scalatest
 import org.scalatest.{FlatSpec, BeforeAndAfterEach}
 import org.scalatest.matchers.MustMatchers
-import se.scalablesolutions.akka.collection.HashTrie
+import se.scalablesolutions.akka.stm.HashTrie
 
 class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	

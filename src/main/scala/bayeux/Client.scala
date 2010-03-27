@@ -5,7 +5,7 @@ import org.joda.time.DateTime
 
 //akka
 import se.scalablesolutions.akka.actor._
-import se.scalablesolutions.akka.collection.HashTrie
+import se.scalablesolutions.akka.stm.HashTrie
 
 //java
 import java.util.UUID
@@ -52,6 +52,8 @@ class Client private() extends Actor{
     //add to the clients hash
     Client.clients = Client.clients.update(uuid, this)
     
+    log.debug("created %s", this)
+    
     def receive = {
 		case SetFlusher(f: MessageFlusher) => 
 			flusher = f
@@ -78,7 +80,7 @@ class Client private() extends Actor{
             }
         //if this client has been around longer than the Bayeux.TIMEOUT_VALUE + 10 seconds, then stop it
         case GarbageCollect =>
-            if((new DateTime().getMillis - lastMetaConnect.getMillis) > (Bayeux.TIMEOUT_VALUE + 10000)) stop
+            if((new DateTime().getMillis - lastMetaConnect.getMillis) > (Bayeux.TIMEOUT_VALUE + 10000)) this ! Disconnect
         case GetSubscriptions => reply(channels)
         case Disconnect =>
             //unsubscribe to all channels and call stop

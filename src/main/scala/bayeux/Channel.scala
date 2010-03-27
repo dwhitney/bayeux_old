@@ -5,8 +5,8 @@ import java.net.{URLEncoder, URLDecoder}
 
 //akka
 import se.scalablesolutions.akka.actor._
-import se.scalablesolutions.akka.state.TransactionalState
-import se.scalablesolutions.akka.collection.HashTrie
+import se.scalablesolutions.akka.stm.TransactionalState
+import se.scalablesolutions.akka.stm.HashTrie
 import se.scalablesolutions.akka.stm.Transaction._
 
 object Channel{
