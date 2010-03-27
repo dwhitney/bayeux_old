@@ -9,10 +9,19 @@ import se.scalablesolutions.akka.actor._
 //java
 import java.util.concurrent.{Future, TimeUnit}
 
+object MessageFlusher{
+    //factory for producing message flushers that have been started
+    def apply(messages: List[Message]): MessageFlusher = {
+        val flusher = new MessageFlusher(messages)
+        flusher.start
+        flusher
+    }
+}
+
 case object Flush{}
 case class SetFlusher(flusher: MessageFlusher){}
 
-class MessageFlusher(val messages: List[Message])
+class MessageFlusher private (val messages: List[Message])
 	extends Future[List[Message]] 
 	with Actor
 	with Bayeux{
@@ -25,7 +34,6 @@ class MessageFlusher(val messages: List[Message])
 	//keeps track of when the flusher should flush.  This is essential to the isDone method, explained below;
 	private var shouldFlush = false
 	
-	start
 	
 	//tell the client that this instance is its MessageFlusher
 	client ! SetFlusher(this)
