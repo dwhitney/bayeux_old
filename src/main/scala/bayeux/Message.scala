@@ -13,6 +13,7 @@ import org.joda.time.format.DateTimeFormat
 
 object Message{
     
+    val ADVICE = "advice"
     val CHANNEL = "channel"
     val CLIENT_ID = "clientId"
     val CONNECTION_TYPE = "connectionType"
@@ -69,7 +70,8 @@ object Message{
         if(message.id != null) json = json ~ (ID -> message.id)
         if(message.subscription != null) json = json ~ (SUBSCRIPTION -> message.subscription.name)
         if(message.isResponse) json = json ~ (SUCCESSFUL -> message.successful)
-        if(message.ext.size > 0) json = json ~ message.ext
+        if(message.ext.size > 0) json = json ~ (EXT -> message.ext)
+        if(message.advice.size > 0) json = json ~ (ADVICE -> message.advice)
         
         message.channel.name match {
             case Bayeux.META_HANDSHAKE => 
@@ -82,7 +84,7 @@ object Message{
             case Bayeux.META_SUBSCRIBE => () //add advice
             case Bayeux.META_UNSUBSCRIBE => () //add advice
             case _ => //add advice
-                json = json ~ message.data
+                json = json ~ (DATA -> message.data)
             
         }
         
@@ -141,7 +143,7 @@ object Message{
     private def extractData(json: JValue): Map[String, Any] = {
         import net.liftweb.json.JsonParser._
         (json \ DATA) match {
-            case JField("data", obj: JObject) => obj.values
+            case JField(DATA, obj: JObject) => obj.values
             case _ => Map[String, Any]()
         }
     }
@@ -161,6 +163,7 @@ object Message{
 }
 
 case class Message(
+        val advice: Map[String, Any] = Map[String, Any](),
         val channel: Channel = null,
         val client: Client = null,
         val connectionType: String = null,

@@ -75,7 +75,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	it must "enqueue a message in its message queue when receiving an enqueue message" in {
 	    import scala.collection.immutable.Queue
 	    val client = new Client	    
-	    val message = new Message(Channel("/chat/scala"))
+	    val message = new Message(channel = Channel("/chat/scala"))
 	    
 	    client ! Enqueue(message)
 	    
@@ -86,7 +86,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	it must "flush a list of messages when the Flush message is sent" in {
 	    import scala.collection.immutable.Queue
 	    val client = new Client	    
-	    val message = new Message(Channel("/chat/scala"))
+	    val message = new Message(channel = Channel("/chat/scala"))
 	    
 	    client ! Enqueue(message)
 	    

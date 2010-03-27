@@ -152,7 +152,7 @@ class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    val client = new Client
 	    channel ! Subscribe(client)
 	    
-	    val message = new Message(Channel("/chat/scala"))
+	    val message = new Message(channel = Channel("/chat/scala"))
 	    
 	    channel ! Publish(message)
 	    

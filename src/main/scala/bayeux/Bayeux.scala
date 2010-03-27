@@ -13,7 +13,7 @@ object Bayeux{
     val VERSION = "1.0"
     val LONG_POLLING = "long-polling"
     val SUPPORTED_CONNECTION_TYPES = List(LONG_POLLING)
-	var CONNECTION_INTERVAL = 1000 * 5 * 1 //one minute
+	var CONNECTION_INTERVAL = 1000 * 30 * 1 //one minute
     
     
     //error codes - don't know if there is a canonical set
@@ -30,7 +30,7 @@ object Bayeux{
 trait Bayeux{
     
     //dispatches messages
-    def dispatch(message: Message): Option[Message] = {
+    def dispatch(message: Message): Option[List[Message]] = {
         if(message.channel == null){
             error(message, List[Int](Bayeux.ERROR_NO_CHANNEL_SPECIFIED),List[String](null),"no channel was specified")
         }else{
@@ -46,13 +46,27 @@ trait Bayeux{
     }
     
     //event messages, where most messages go
-    private def publish(message: Message): Option[Message] = {
+    private def publish(message: Message): Option[List[Message]] = {
         message.channel ! Publish(message)
-        None    
+        val ack = Message(isResponse = true,
+                channel = message.channel,
+                successful = true, 
+                id = message.id, 
+                data = message.data,
+                ext = message.ext)
+        //immediately respond so that we do not have to close an already open connection
+        val response = Message(
+            channel = message.channel,
+            client = message.client,
+            data = message.data,
+            id = message.id,
+            ext = message.ext
+        )
+        Some(List(ack, response)) 
     }
     
     //logic to carry out a /meta/unsubscribe message
-    private def metaUnsubscribe(message: Message): Option[Message] = {
+    private def metaUnsubscribe(message: Message): Option[List[Message]] = {
         message match {
             //check for missing clientId
             case m: Message if(m.client == null) => missingClient(m)
@@ -72,12 +86,12 @@ trait Bayeux{
                     subscription = message.subscription,
                     id = message.id,
                     isResponse = true)
-                Some(response)
+                Some(List(response))
         }
     }
     
     //logic to carry out a /meta/subscribe message
-    private def metaSubscribe(message: Message): Option[Message] = {
+    private def metaSubscribe(message: Message): Option[List[Message]] = {
         message match {
             //check for missing clientId
             case m: Message if(m.client == null) => missingClient(m)
@@ -91,17 +105,19 @@ trait Bayeux{
             //valid state
             case _ =>
                 message.subscription ! Subscribe(message.client)
-                val response = new Message(message.channel, message.client,
+                val response = new Message(
+                    channel = message.channel, 
+                    client = message.client,
                     successful = true,
                     subscription = message.subscription,
                     id = message.id,
                     isResponse = true)
-                Some(response)
+                Some(List(response))
         }
     }
     
     //logic to carry out a /meta/disconnect message
-    private def metaDisconnect(message: Message): Option[Message] = {
+    private def metaDisconnect(message: Message): Option[List[Message]] = {
         message match {
             //test for missing clientId
             case m: Message if(m.client == null) => missingClient(m)
@@ -113,13 +129,13 @@ trait Bayeux{
                         successful = true,
                         id = message.id,
                         isResponse = true)
-                Some(response)
+                Some(List(response))
                 
         }
     }
     
     //logic necessary to carry out a /meta/connect message
-    private def metaConnect(message: Message): Option[Message] = {
+    private def metaConnect(message: Message): Option[List[Message]] = {
         message match {
             //test for missing clientId
             case m: Message if(m.client == null) => missingClient(m)
@@ -135,18 +151,21 @@ trait Bayeux{
                     List[Int](Bayeux.ERROR_UNSUPPORTED_CONNECTION_TYPE),
                     List[String](m.connectionType),
                     "the connectionType specified is unsupported")
-            //error free request state
+            //error free request state.  Enqueue message, and return None, because /meta/connect messages aren't returned immediately
             case _ =>
-                val response = new Message(message.channel, message.client,
+                val response = new Message(
+                        channel = message.channel, 
+                        client = message.client,
                         successful = true,
                         id = message.id,
                         isResponse = true)
-                Some(response)
+                message.client ! Enqueue(response)
+                None
         }
     }
     
     //logic necessary to carry out a /meta/handshake message
-    private def metaHandshake(message: Message): Option[Message] = {
+    private def metaHandshake(message: Message): Option[List[Message]] = {
         
         message match {
             //test for incompatible version
@@ -163,28 +182,31 @@ trait Bayeux{
                     "none of the supported connection types match those supported by this implementation of Bayeux")
             //valid message
             case _ =>
-                val response = new Message(Channel(Bayeux.META_HANDSHAKE), new Client,
+                val response = new Message(
+                    channel = Channel(Bayeux.META_HANDSHAKE), 
+                    client = new Client,
                     successful = true,
                     id = message.id,
                     isResponse = true)
-                Some(response)
+                Some(List(response))
         }
         
     }
     
     //common error response for missing client
-    private def missingClient(message: Message): Option[Message] = error(message,
+    private def missingClient(message: Message): Option[List[Message]] = error(message,
         List[Int](Bayeux.ERROR_MISSING_CLIENT_ID),
         List[String](null),
         "either a clientId was not sent, or it was not found")
     
     //creates an error message with the given copy
-    private def error(message: Message, codes: List[Int], args: List[String], copy: String): Option[Message] = {
-        val errorResponse = new Message(channel = message.channel,
+    private def error(message: Message, codes: List[Int], args: List[String], copy: String): Option[List[Message]] = {
+        val errorResponse = new Message(isResponse = true,
+            channel = message.channel,
             id = message.id,
             successful = false,
             error = String.format("%s:%s:%s", codes.mkString(" "), args.mkString(","), copy))
-        Some(errorResponse)
+        Some(List(errorResponse))
     }
     
 }

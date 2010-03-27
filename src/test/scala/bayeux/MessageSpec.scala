@@ -19,7 +19,7 @@ class MessageSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	"A Message" should "construct normally" in {
 		val channel = Channel("/chat/scala")
-		val message = new Message(channel)
+		val message = new Message(channel = channel)
 		()
 	}
 	
