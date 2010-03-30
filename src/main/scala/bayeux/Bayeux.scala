@@ -1,7 +1,7 @@
 package us.says.bayeux
 
 //akka
-import se.scalablesolutions.akka.actor.ActorRegistry  
+import se.scalablesolutions.akka.actor._  
 
 object Bayeux{
     
@@ -31,9 +31,36 @@ object Bayeux{
     val ERROR_NO_SUBSCRIPTION_SPECIFIED = 406
     val ERROR_NO_CHANNEL_SPECIFIED = 407
     val ERROR_MISSING_DATA_FIELD = 408
+    val ERROR_SUBSCRIPTION_TO_META_CHANNEL = 409
+    val ERROR_SUBSCRIPTION_TO_SERVICE_CHANNEL = 410
 }
 
 trait Bayeux{
+    
+    //list of extensions
+    private var extensions: List[Extension] = Nil
+    
+    /**
+     * registers an extension
+     * @param the extensions you'd like to register
+    **/
+    def registerExtension(extension: Extension): Unit = {
+        extensions.synchronized{
+            extension.registered
+            extensions = extension :: extensions
+        }
+    }
+    
+    /**
+     * unregisters an extension
+     * @param the extension to unregister
+    **/
+    def unregisterExtension(extension: Extension): Unit = {
+        extensions.synchronized{
+            extension.unregistered
+            extensions = extensions.filterNot(_ == extension)
+        }
+    }
     
     //dispatches messages
     def dispatch(message: Message): Option[List[Message]] = {
@@ -107,7 +134,16 @@ trait Bayeux{
                     List[Int](Bayeux.ERROR_NO_SUBSCRIPTION_SPECIFIED),
                     List[String](null),
                     "no subscription was specified")
-                    
+            case m: Message if(m.subscription.name.matches("^\\/meta\\/.*")) =>
+                error(message,
+                    List[Int](Bayeux.ERROR_SUBSCRIPTION_TO_META_CHANNEL),
+                    List[String](null),
+                    "you attempted to subscribe to a meta channel")
+            case m: Message if(m.subscription.name.matches("^\\/service\\/.*")) =>
+                error(message,
+                    List[Int](Bayeux.ERROR_SUBSCRIPTION_TO_SERVICE_CHANNEL),
+                    List[String](null),
+                    "you attempted to subscribe to a service channel")
             //valid state
             case _ =>
                 message.subscription ! Subscribe(message.client)

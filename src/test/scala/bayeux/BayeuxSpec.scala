@@ -250,4 +250,48 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    Thread.sleep(50)
 	    (client !! GetMessageQueue).getOrElse(Queue[Message](message)) must equal(queue)
 	}
+	
+	it must "register an extension and call its registered method" in {
+	    object TestBayeux extends Bayeux{}
+	    var iWasCalled = false
+	    object TestExtension extends Extension{
+	        override def registered = {iWasCalled = true; ()}
+	    }
+	    
+	    TestBayeux.registerExtension(TestExtension)
+	    
+	    iWasCalled must be(true)
+	}
+	
+	it must "unregister an extension and call its unregistered method" in {
+	    object TestBayeux extends Bayeux{}
+	    var iWasCalled = false
+	    object TestExtension extends Extension{
+	        override def unregistered = {iWasCalled = true; ()}
+	    }
+	    
+	    TestBayeux.registerExtension(TestExtension)
+	    iWasCalled must be(false)
+	    
+	    TestBayeux.unregisterExtension(TestExtension)
+	    iWasCalled must be(true)
+	}
+	
+	it must "return an error message when a subscription to a /meta/ channel is attempted" in {
+	    object TestBayeux extends Bayeux{}
+	    val client = Client.apply
+	    val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), client = client, id = "myId", subscription = Channel(Bayeux.META_SUBSCRIBE))
+	    
+	    val response = TestBayeux.dispatch(message).get(0)
+	    response.error must equal("409:null:you attempted to subscribe to a meta channel")
+	}
+	
+	it must "return an error message when a subscription to a /service/ channel is attempted" in {
+	    object TestBayeux extends Bayeux{}
+	    val client = Client.apply
+	    val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), client = client, id = "myId", subscription = Channel("/service/private"))
+	    
+	    val response = TestBayeux.dispatch(message).get(0)
+	    response.error must equal("410:null:you attempted to subscribe to a service channel")
+	}
 }
