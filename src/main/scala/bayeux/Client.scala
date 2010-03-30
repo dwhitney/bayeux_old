@@ -65,7 +65,10 @@ class Client private()
 	/**
 	 * get will always ask the client to flush its messages.  we use message passing here to avoid concurrency issues
 	**/
-	def get(timeout: Long, unit: TimeUnit): List[Message] = (this !! (Flush, timeout)).getOrElse(Nil)
+	def get(timeout: Long, unit: TimeUnit): List[Message] = {
+	    if(this.isRunning) (this !! (Flush, timeout)).getOrElse(Nil)
+	    else Nil
+	}
 	
 	/**
 	 * always returns false.  will change if I see a reason to.
@@ -80,7 +83,10 @@ class Client private()
 	/**
 	 * This method will only return true if shouldFlush is true, or the timeout has been reached.
 	**/
-	def isDone = (this !! (IsDone, 1000)).getOrElse(false)
+	def isDone = {
+	    if(this.isRunning)(this !! (IsDone, 1000)).getOrElse(false)
+	    else true
+	}
     
     def receive = {
         case IsDone =>
@@ -142,7 +148,9 @@ class Client private()
 		message.channel.name match {
 			case Bayeux.META_SUBSCRIBE => flush
 			case Bayeux.META_HANDSHAKE => flush
-			case Bayeux.META_DISCONNECT => flush
+			case Bayeux.META_DISCONNECT => 
+			    messageQueue = Queue[Message]() //a disconnect message is immediately sent to the client via the Bayeux.dispatch() message, so we clear the queue here, since nothing else needs to go to the client
+			    flush
 			case Bayeux.META_CONNECT if message.id != null && message.id.toString.matches("[1234]") => 
 			    //if this is the second message from the client, it's probably the first connect message, and we should 
 			    //flush immediatly because that's what the jquery client seems to want?... dunno why
