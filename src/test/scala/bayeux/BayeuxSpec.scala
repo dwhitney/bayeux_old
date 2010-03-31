@@ -294,4 +294,48 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    val response = TestBayeux.dispatch(message).get(0)
 	    response.error must equal("410:null:you attempted to subscribe to a service channel")
 	}
+	
+	it must "apply the incoming method of the extension when the message is called" in {
+	    object TestBayeux extends Bayeux{}
+	    var iWasCalled = false
+	    object TestExtension extends Extension{
+	        override def incoming(message: Message) = {
+	            iWasCalled = true
+	            Some(message)
+	        }
+	    }
+	    
+	    TestBayeux.registerExtension(TestExtension)
+	    
+	    val channel = Channel("/chat/scala")
+	    val client = Client.apply
+	    
+	    val message = new Message(channel = Channel("/chat/scala"), client = client)
+	    
+	    TestBayeux.dispatch(message)
+	    
+	    iWasCalled must be (true)
+	}
+	
+	it must "apply the outgoing method of the extension when the message is called" in {
+	    object TestBayeux extends Bayeux{}
+	    var iWasCalled = false
+	    object TestExtension extends Extension{
+	        override def outgoing(message: Message) = {
+	            iWasCalled = true
+	            Some(message)
+	        }
+	    }
+	    
+	    TestBayeux.registerExtension(TestExtension)
+	    
+	    val channel = Channel("/chat/scala")
+	    val client = Client.apply
+	    
+	    val message = new Message(channel = Channel("/chat/scala"), client = client)
+	    
+	    TestBayeux.dispatch(message)
+	    
+	    iWasCalled must be (true)
+	}
 }

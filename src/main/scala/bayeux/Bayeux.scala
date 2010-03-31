@@ -46,9 +46,9 @@ trait Bayeux{
     **/
     def registerExtension(extension: Extension): Unit = {
         extensions.synchronized{
-            extension.registered
             extensions = extension :: extensions
         }
+        extension.registered
     }
     
     /**
@@ -57,9 +57,9 @@ trait Bayeux{
     **/
     def unregisterExtension(extension: Extension): Unit = {
         extensions.synchronized{
-            extension.unregistered
             extensions = extensions.filterNot(_ == extension)
         }
+        extension.unregistered
     }
     
     //dispatches messages
@@ -67,13 +67,39 @@ trait Bayeux{
         if(message.channel == null){
             error(message, List[Int](Bayeux.ERROR_NO_CHANNEL_SPECIFIED),List[String](null),"no channel was specified")
         }else{
-            message.channel.name match {
-                case Bayeux.META_CONNECT => metaConnect(message)
-                case Bayeux.META_SUBSCRIBE => metaSubscribe(message)
-                case Bayeux.META_UNSUBSCRIBE => metaUnsubscribe(message)
-                case Bayeux.META_HANDSHAKE => metaHandshake(message)
-                case Bayeux.META_DISCONNECT => metaDisconnect(message)
-                case _ => publish(message)
+            
+            //function that recusively applies all of the extensions to the message
+            def runExtensions(message: Option[Message], extensions: List[Extension], incoming: Boolean): Option[Message] = {
+                message match {
+                    case Some(_) =>
+                        extensions match {
+                            case Nil => message
+                            case e :: tail => 
+                                if(incoming) runExtensions(e.incoming(message.get), tail, incoming)
+                                else runExtensions(e.outgoing(message.get), tail, incoming)
+                        }
+                    case None => None
+                }
+            }
+            
+            //apply each extension's incoming method to the incoming methods, then dispatch the results
+            val messages = runExtensions(Some(message), extensions.synchronized{ extensions }, true) match {
+                case Some(message) => 
+                    message.channel.name match {
+                        case Bayeux.META_CONNECT => metaConnect(message)
+                        case Bayeux.META_SUBSCRIBE => metaSubscribe(message)
+                        case Bayeux.META_UNSUBSCRIBE => metaUnsubscribe(message)
+                        case Bayeux.META_HANDSHAKE => metaHandshake(message)
+                        case Bayeux.META_DISCONNECT => metaDisconnect(message)
+                        case _ => publish(message)
+                    }
+                case None => None
+            }
+            
+            //apply each extension's outgoing method to the messages returned above, which are in turn returned by the method
+            messages.getOrElse(Nil).flatMap{m: Message => runExtensions(Some(m), extensions.synchronized{ extensions }, false)} match {
+                case Nil => None
+                case list: List[Message] => Some(list)
             }
         }
     }
