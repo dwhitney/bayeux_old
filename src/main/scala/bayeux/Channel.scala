@@ -11,7 +11,7 @@ import se.scalablesolutions.akka.stm.Transaction._
 
 object Channel{
 	
-	private var channels = new HashTrie[String, Channel]()
+	//private var channels = new HashTrie[String, Channel]()
 	
 	/**
 	returns a channel of the given name.
@@ -34,13 +34,14 @@ object Channel{
 				throw new IllegalArgumentException("Channels must follow the following paradigm '/foo/bar/baz' and the characters between the slashes must be URL encoded")
 		}
 		
-		//check the channels hash for the channel of the given name
-		//if it doesn't exist, create a new one and add it to the hash
-		channels.get(name) match {
-			case Some(channel: Channel) => channel
-			case None =>
+		val channels = ActorRegistry.actorsFor(name)
+		channels match {
+			case channel :: Nil => channel.asInstanceOf[Channel]
+			case channel :: tail =>
+			    log.warning("there are two channels with the same name.  this really shouldn't happen")
+			    channel.asInstanceOf[Channel]
+			case Nil =>
 				val channel = new Channel(name)
-				channels = channels.update(name, channel)
 				channel.start
 				channel
 		}
@@ -60,30 +61,34 @@ object Channel{
     @return a Set of Channels matching the name specified
 	**/
 	def getChannels(name: String): Set[Channel] = {
-	    val channels = all
-	    var set = Set[Channel]()
+	    
+	    var set: Set[Channel] = Set[Channel]()
 	    
 	    //if no wildcard is used, simply fetch the channel from the hash
 	    if(!(name(name.length - 1) == '*')){
-	        channels.get(name) match {
-	            case Some(channel: Channel) => set = set + channel
-	            case None => ()
+	        val channels = ActorRegistry.actorsFor(name)
+	        channels match {
+	            case channel :: Nil => set = set + channel.asInstanceOf[Channel]
+	            case channel :: tail =>
+    			    log.warning("there are two channels with the same name.  this really shouldn't happen")
+    			    channel.asInstanceOf[Channel]
+	            case Nil => ()
 	        }
 	    //if multi-line wildcard
 	    }else if(name.length >= 3 && name.substring(name.length - 3) == "/**"){
 	        val pattern = name.substring(0, name.length - 2) + ".*"
-	        channels.keySet.foreach{ key: String => if(key.matches(pattern)) set = set + channels(key) }
+	        val channels = ActorRegistry.actorsFor[Channel]
+	        log.warning("wildcard searches are likely to be inefficient in a clustered environment")
+	        channels.foreach{ channel: Channel => if(channel.name.matches(pattern)) set = set + channel }
 	    //single line wildcard
 	    }else{
+	        val channels = ActorRegistry.actorsFor[Channel]
 	        val pattern = name.substring(0, name.length - 1) + "[^/]*$"
-	        channels.keySet.foreach{ key: String => if(key.matches(pattern)) set = set + channels(key) }
+	        log.warning("wildcard searches are likely to be inefficient in a clustered environment")
+	        channels.foreach{ channel: Channel => if(channel.name.matches(pattern)) set = set + channel }
 	    }
 	    set
 	}
-	
-	def all: HashTrie[String, Channel] = channels
-
-	def clearChannels: Unit = channels = new HashTrie[String, Channel]()
 	
 }
 

@@ -3,6 +3,7 @@ package us.says.bayeux
 import org.scalatest.{FlatSpec, BeforeAndAfterEach}
 import org.scalatest.matchers.MustMatchers
 import se.scalablesolutions.akka.stm.HashTrie
+import se.scalablesolutions.akka.actor._
 
 //lift
 import net.liftweb.json.JsonAST.JValue
@@ -10,12 +11,9 @@ import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
 
-
-
-
 class MessageSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
-	override def beforeEach: Unit = Channel.clearChannels
+	override def beforeEach: Unit = ActorRegistry.actorsFor[Channel].foreach(_.stop)
 	
 	"A Message" should "construct normally" in {
 		val channel = Channel("/chat/scala")

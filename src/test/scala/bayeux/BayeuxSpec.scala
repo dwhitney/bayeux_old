@@ -7,10 +7,11 @@ import scala.collection.immutable.Queue
 import org.scalatest.{FlatSpec, BeforeAndAfterEach}
 import org.scalatest.matchers.MustMatchers
 import se.scalablesolutions.akka.stm.HashTrie
+import se.scalablesolutions.akka.actor._
 
 class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
-	override def beforeEach: Unit = Channel.clearChannels
+	override def beforeEach: Unit = ActorRegistry.actorsFor[Channel].foreach(_.stop)
 	
 	"A Bayeux" should "include the handshake channel when responding to a /meta/handshake" in {
 	    object TestBayeux extends Bayeux{}

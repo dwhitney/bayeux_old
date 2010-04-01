@@ -3,10 +3,18 @@ package us.says.bayeux
 import org.scalatest.{FlatSpec, BeforeAndAfterEach}
 import org.scalatest.matchers.MustMatchers
 import se.scalablesolutions.akka.stm.HashTrie
+import se.scalablesolutions.akka.actor._
 
 class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
-	override def beforeEach: Unit = Channel.clearChannels
+	def clearChannels: Unit = {
+	    ActorRegistry.actorsFor[Channel].foreach(_.stop)
+	    ()
+    }
+	
+	def all: List[Channel] = ActorRegistry.actorsFor[Channel]
+	
+	override def beforeEach: Unit = clearChannels
 	
 	"A Channel" should "construct normally" in {
 		val channel = Channel("/chat/scala")
@@ -57,34 +65,6 @@ class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 			val channel = Channel("/chat/")
 			() 
 		} must produce [IllegalArgumentException]
-	}
-	
-	it should "all should return the hashtrie" in {
-		Channel.all must not be (null)
-	}
-	
-	it should "add channels to the channels hash" in {
-		Channel.all.size must equal(0)
-		val channel = Channel("/chat/scala")
-		Channel.all.size must equal(1)
-	}
-	
-	it should "add channels to the channels hash and they should go under the same key" in {
-		Channel.all.size must equal(0)
-		val channel = Channel("/chat/scala")
-		Channel.all.size must equal(1)
-		
-		val channel2 = Channel("/chat/scala")
-		Channel.all.size must equal(1)
-	}
-	
-	it should "add channels to the channels hash getting another should return the exact same instance" in {
-		Channel.all.size must equal(0)
-		val channel = Channel("/chat/scala")
-		Channel.all.size must equal(1)
-		
-		val channel2 = Channel("/chat/scala")
-		assert(channel eq channel2)
 	}
 	
 	it should "return a list of one element when no wildcard is used with getChannels" in {

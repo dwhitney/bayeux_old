@@ -16,11 +16,13 @@ import scala.collection.immutable.Queue
 
 object Client{
     
-    private var clients = new HashTrie[String, Client]()
-    
-    def getClients: HashTrie[String, Client] = clients
-    def getClient(uuid: String): Option[Client] = clients.get(uuid)
-    def clearClients: Unit = clients = new HashTrie[String, Client]
+    def getClient(id: String): Option[Client] = {
+        ActorRegistry.actorsFor(id) match {
+            case client :: Nil => Some(client.asInstanceOf[Client])
+            case client :: tail => Some(client.asInstanceOf[Client]) //this should never happen
+            case Nil => None
+        }
+    }
     
     def apply: Client = {
         val client = new Client
@@ -51,9 +53,7 @@ class Client private()
     
     //create uuid, stripping out the dashes as per the bayeux spec
     override val uuid = UUID.randomUUID.toString.replaceAll("-", "")
-    
-    //add to the clients hash
-    Client.clients = Client.clients.update(uuid, this)
+    id = uuid
     
     log.debug("Client Created %s", this)
     

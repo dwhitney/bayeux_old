@@ -3,18 +3,19 @@ package us.says.bayeux
 import org.scalatest.{FlatSpec, BeforeAndAfterEach}
 import org.scalatest.matchers.MustMatchers
 import se.scalablesolutions.akka.stm.HashTrie
+import se.scalablesolutions.akka.actor._
 
 class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	override def beforeEach: Unit = {
-	    Channel.clearChannels
-	    Client.clearClients
+	    ActorRegistry.actorsFor[Channel].foreach(_.stop)
+	    ActorRegistry.actorsFor[Client].foreach(_.stop)
 	}
 	
 	"A Client" should "construct normally and add itself to the clients list" in {
 		val client = Client.apply
-		val clients = Client.getClients
-		client must equal(clients.get(client.uuid).get)
+		val clients = ActorRegistry.actorsFor[Client]
+		client must equal(clients.find(_.uuid == client.uuid).get)
 		()
 	}
 	
