@@ -38,7 +38,7 @@ object Channel{
 		channels match {
 			case channel :: Nil => channel.asInstanceOf[Channel]
 			case channel :: tail =>
-			    log.warning("there are two channels with the same name.  this really shouldn't happen")
+			    //log.warning("there are two channels with the same name.  this really shouldn't happen")
 			    channel.asInstanceOf[Channel]
 			case Nil =>
 				val channel = new Channel(name)
@@ -70,7 +70,7 @@ object Channel{
 	        channels match {
 	            case channel :: Nil => set = set + channel.asInstanceOf[Channel]
 	            case channel :: tail =>
-    			    log.warning("there are two channels with the same name.  this really shouldn't happen")
+    			    //log.warning("there are two channels with the same name.  this really shouldn't happen")
     			    channel.asInstanceOf[Channel]
 	            case Nil => ()
 	        }
@@ -78,13 +78,13 @@ object Channel{
 	    }else if(name.length >= 3 && name.substring(name.length - 3) == "/**"){
 	        val pattern = name.substring(0, name.length - 2) + ".*"
 	        val channels = ActorRegistry.actorsFor[Channel]
-	        log.warning("wildcard searches are likely to be inefficient in a clustered environment")
+	        //log.warning("wildcard searches are likely to be inefficient in a clustered environment")
 	        channels.foreach{ channel: Channel => if(channel.name.matches(pattern)) set = set + channel }
 	    //single line wildcard
 	    }else{
 	        val channels = ActorRegistry.actorsFor[Channel]
 	        val pattern = name.substring(0, name.length - 1) + "[^/]*$"
-	        log.warning("wildcard searches are likely to be inefficient in a clustered environment")
+	        //log.warning("wildcard searches are likely to be inefficient in a clustered environment")
 	        channels.foreach{ channel: Channel => if(channel.name.matches(pattern)) set = set + channel }
 	    }
 	    set
