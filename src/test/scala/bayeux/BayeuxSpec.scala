@@ -40,7 +40,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
         val message = new Message(channel = Channel(Bayeux.META_HANDSHAKE))
         val response = TestBayeux.dispatch(message).get(0)
         println(response.error)
-        response.client must not be (null)
+        response.clientId must not be (null)
 	}
 
     it must "include successful=true responding to a /meta/handshake" in {
@@ -80,7 +80,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it must "send an error message when a connectionType is not included in a /meta/connect mesage" in {
 	    object TestBayeux extends Bayeux{}
-        val message = new Message(channel = Channel(Bayeux.META_CONNECT), client = Client.apply)
+        val message = new Message(channel = Channel(Bayeux.META_CONNECT), clientId = Client.apply.uuid)
         val response = TestBayeux.dispatch(message).get(0)
         response.successful must be(false)
         response.error must equal("404:null:a connectionType was not specified")
@@ -88,7 +88,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it must "send an error message when a connectionType is not supported in a /meta/connect mesage" in {
 	    object TestBayeux extends Bayeux{}
-        val message = new Message(channel = Channel(Bayeux.META_CONNECT), client = Client.apply, connectionType = "web-socket")
+        val message = new Message(channel = Channel(Bayeux.META_CONNECT), clientId = Client.apply.uuid, connectionType = "web-socket")
         val response = TestBayeux.dispatch(message).get(0)
         response.successful must be(false)
         response.error must equal("405:web-socket:the connectionType specified is unsupported")
@@ -104,7 +104,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    """ in {
 	    object TestBayeux extends Bayeux{}
 	    val client = Client.apply
-        val message = new Message(channel = Channel(Bayeux.META_CONNECT), client = client,
+        val message = new Message(channel = Channel(Bayeux.META_CONNECT), clientId = client.uuid,
             connectionType = "long-polling",
             id = "myId")
         
@@ -113,8 +113,8 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
         val response = (client !! GetMessageQueue).getOrElse(Queue[Message]()).front
         response.error must be(null)
         response.successful must be(true)
-        response.client must not be(null)
-        response.client.uuid must equal(client.uuid)
+        response.clientId must not be(null)
+        response.clientId must equal(client.uuid)
         response.id must equal(message.id)
         response.timestamp must not be(null)
 	}
@@ -130,18 +130,18 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	it must "send a response with the /meta/disconnect channel, the clientId, and successful = true and the client must be stopped" in {
 	    object TestBayeux extends Bayeux{}
 	    val client = Client.apply
-	    Channel("/chat/scala") ! Subscribe(client)
+	    Channel("/chat/scala") ! Subscribe(client.uuid)
 	    (Channel("/chat/scala") !! GetSubscribers).getOrElse(HashTrie[String, Client]()).size must equal(1)
-        val message = new Message(channel = Channel(Bayeux.META_DISCONNECT), client = client, id = "myId")
+        val message = new Message(channel = Channel(Bayeux.META_DISCONNECT), clientId = client.uuid, id = "myId")
 
         val response = TestBayeux.dispatch(message).get(0)
-        response.client must not be(null)
+        response.clientId must not be(null)
         response.successful must be(true)
         //sleep to let the actors process messages or else the test will fail
         Thread.sleep(50)
         (Channel("/chat/scala") !! GetSubscribers).getOrElse(HashTrie[String, Client]()).size must equal(0)
         response.id must equal(message.id)
-        response.client.isRunning must be(false)
+        Client.getClient(response.clientId) must be(None)
 	}
 	
 	it must "send an error message when a client is not included in a /meta/subscribe message" in {
@@ -154,7 +154,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it must "send an error message when a subscription channel is not included in a /meta/subscribe message" in {
 	    object TestBayeux extends Bayeux{}
-        val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), client = Client.apply)
+        val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), clientId = Client.apply.uuid)
         val response = TestBayeux.dispatch(message).get(0)
         response.successful must be(false)
         response.error must equal("406:null:no subscription was specified")
@@ -169,9 +169,9 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	""" in {
 	    object TestBayeux extends Bayeux{}
 	    val client = Client.apply
-        val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), client = client, id = "myId", subscription = Channel("/chat/scala"))
+        val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), clientId = client.uuid, id = "myId", subscription = Channel("/chat/scala"))
         val response = TestBayeux.dispatch(message).get(0)
-        response.client must equal(client)
+        response.clientId must equal(client.uuid)
         response.subscription must equal(message.subscription)
         response.channel must equal (Channel(Bayeux.META_SUBSCRIBE))
         response.id must equal (message.id)
@@ -191,7 +191,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it must "send an error message when a subscription channel is not included in a /meta/unsubscribe message" in {
 	    object TestBayeux extends Bayeux{}
-        val message = new Message(channel = Channel(Bayeux.META_UNSUBSCRIBE), client = Client.apply)
+        val message = new Message(channel = Channel(Bayeux.META_UNSUBSCRIBE), clientId = Client.apply.uuid)
         val response = TestBayeux.dispatch(message).get(0)
         response.successful must be(false)
         response.error must equal("406:null:no subscription was specified")
@@ -208,14 +208,14 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    val client = Client.apply
 	    val channel = Channel("/chat/scala")
 	    
-	    channel ! Subscribe(client)
+	    channel ! Subscribe(client.uuid)
 	    var subscribers = (channel !! GetSubscribers).getOrElse(new HashTrie[String, Client])
         subscribers.size must equal(1)
         
-        val message = new Message(channel = Channel(Bayeux.META_UNSUBSCRIBE), client = client, id = "myId", subscription = Channel("/chat/scala"))
+        val message = new Message(channel = Channel(Bayeux.META_UNSUBSCRIBE), clientId = client.uuid, id = "myId", subscription = Channel("/chat/scala"))
         
         val response = TestBayeux.dispatch(message).get(0)
-        response.client must equal(client)
+        response.clientId must equal(client.uuid)
         response.subscription must equal(message.subscription)
         response.channel must equal (Channel(Bayeux.META_UNSUBSCRIBE))
         response.id must equal (message.id)
@@ -240,9 +240,9 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    
 	    val channel = Channel("/chat/scala")
 	    val client = Client.apply
-	    channel ! Subscribe(client)
+	    channel ! Subscribe(client.uuid)
 	    
-	    val message = new Message(channel = Channel("/chat/scala"), client = client)
+	    val message = new Message(channel = Channel("/chat/scala"), clientId = client.uuid)
 	    val publishList = TestBayeux.dispatch(message).get
 	    publishList.size must equal(2) //it responds with an aknowledgement and the message response, so that more that an open connection doesn't need to be terminated
 	    
@@ -281,7 +281,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	it must "return an error message when a subscription to a /meta/ channel is attempted" in {
 	    object TestBayeux extends Bayeux{}
 	    val client = Client.apply
-	    val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), client = client, id = "myId", subscription = Channel(Bayeux.META_SUBSCRIBE))
+	    val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), clientId = client.uuid, id = "myId", subscription = Channel(Bayeux.META_SUBSCRIBE))
 	    
 	    val response = TestBayeux.dispatch(message).get(0)
 	    response.error must equal("409:null:you attempted to subscribe to a meta channel")
@@ -290,7 +290,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	it must "return an error message when a subscription to a /service/ channel is attempted" in {
 	    object TestBayeux extends Bayeux{}
 	    val client = Client.apply
-	    val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), client = client, id = "myId", subscription = Channel("/service/private"))
+	    val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), clientId = client.uuid, id = "myId", subscription = Channel("/service/private"))
 	    
 	    val response = TestBayeux.dispatch(message).get(0)
 	    response.error must equal("410:null:you attempted to subscribe to a service channel")
@@ -311,7 +311,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    val channel = Channel("/chat/scala")
 	    val client = Client.apply
 	    
-	    val message = new Message(channel = Channel("/chat/scala"), client = client)
+	    val message = new Message(channel = Channel("/chat/scala"), clientId = client.uuid)
 	    
 	    TestBayeux.dispatch(message)
 	    
@@ -333,7 +333,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    val channel = Channel("/chat/scala")
 	    val client = Client.apply
 	    
-	    val message = new Message(channel = Channel("/chat/scala"), client = client)
+	    val message = new Message(channel = Channel("/chat/scala"), clientId = client.uuid)
 	    
 	    TestBayeux.dispatch(message)
 	    

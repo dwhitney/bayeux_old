@@ -98,7 +98,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it should "immediately flush upon receiving a /meta/handshake message" in {
 		val client = Client.apply	
-		val message = new Message(channel = Channel(Bayeux.META_HANDSHAKE), client = client)
+		val message = new Message(channel = Channel(Bayeux.META_HANDSHAKE), clientId = client.uuid)
 		
 		client ! Enqueue(message)
 		
@@ -111,7 +111,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it should "immediately flush upon receiving a /meta/subscribe message" in {
 		val client = Client.apply	
-		val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), client = client)
+		val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), clientId = client.uuid)
 		
 		client ! Enqueue(message)
 		
@@ -124,7 +124,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it should "immediately flush upon receiving a /meta/disconnect message" in {
 		val client = Client.apply	
-		val message = new Message(channel = Channel(Bayeux.META_DISCONNECT), client = client)
+		val message = new Message(channel = Channel(Bayeux.META_DISCONNECT), clientId = client.uuid)
 		
 		client ! Enqueue(message)
 		
@@ -137,7 +137,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it should "immediately flush upon receiving a publish message" in {
 		val client = Client.apply	
-		val message = new Message(channel = Channel("/chat/scala"), client = client)
+		val message = new Message(channel = Channel("/chat/scala"), clientId = client.uuid)
 	    client ! Enqueue(message)
 		
         Thread.sleep(100)
@@ -148,7 +148,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it should "immediately flush upon invocation of the get method" in {
 		val client = Client.apply	
-		val message = new Message(channel = Channel(Bayeux.META_CONNECT), client = client)
+		val message = new Message(channel = Channel(Bayeux.META_CONNECT), clientId = client.uuid)
 		client ! Enqueue(message)
 		
         Thread.sleep(100)

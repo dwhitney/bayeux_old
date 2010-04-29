@@ -63,7 +63,7 @@ object Message{
 
 		//assuming CHANNEL exists, which it should
         var json: JObject = (CHANNEL -> message.channel.name)
-        if(message.client != null) json = json ~ (CLIENT_ID -> message.client.uuid)
+        if(message.clientId != null) json = json ~ (CLIENT_ID -> message.clientId)
         if(message.connectionType != null) json = json ~ (CONNECTION_TYPE -> message.connectionType)
         if(message.dateTime != null) json = json ~ (TIMESTAMP -> message.timestamp)
         if(message.error != null) json = json ~ (ERROR -> message.error)
@@ -104,17 +104,6 @@ object Message{
         implicit val formats = net.liftweb.json.DefaultFormats
         if((json \ Message.SUBSCRIPTION) != JNothing) Channel((json \ Message.SUBSCRIPTION).extract[String])
         else null
-    }
-    
-    //pulls the clientId field from the json document and fetches the client with that Id.  returns null if not found
-    private def extractClient(json: JValue): Client = {
-        implicit val formats = net.liftweb.json.DefaultFormats
-        val clientId = extractString(json, Message.CLIENT_ID)
-        if(clientId != null){
-            Client.getClient(clientId).getOrElse(null)
-        }else{
-            null
-        }
     }
     
     //extracts the id field.  returns null if not found
@@ -165,7 +154,7 @@ object Message{
 case class Message(
         var advice: Map[String, Any] = Map[String, Any](),
         val channel: Channel = null,
-        val client: Client = null,
+        val clientId: String = null,
         val connectionType: String = null,
         var data: Map[String, Any] = Map[String, Any](),
         val dateTime: DateTime = new DateTime(DateTimeZone.UTC),
@@ -181,7 +170,7 @@ case class Message(
 
     def this(json: JValue) = this(
         channel = Message.extractChannel(json),
-        client = Message.extractClient(json),
+        clientId = Message.extractString(json, Message.CLIENT_ID),
         connectionType = Message.extractString(json, Message.CONNECTION_TYPE),
         error = Message.extractString(json, Message.ERROR),
         ext = Message.extractExt(json),

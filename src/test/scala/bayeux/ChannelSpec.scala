@@ -1,11 +1,12 @@
 package us.says.bayeux
 
-import org.scalatest.{FlatSpec, BeforeAndAfterEach}
+import org.scalatest.{FlatSpec, BeforeAndAfterEach, BeforeAndAfterAll}
 import org.scalatest.matchers.MustMatchers
 import se.scalablesolutions.akka.stm.HashTrie
 import se.scalablesolutions.akka.actor._
+import se.scalablesolutions.akka.remote._
 
-class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
+class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach with BeforeAndAfterAll{
 	
 	def clearChannels: Unit = {
 	    ActorRegistry.actorsFor[Channel].foreach(_.stop)
@@ -15,6 +16,9 @@ class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	def all: List[Channel] = ActorRegistry.actorsFor[Channel]
 	
 	override def beforeEach: Unit = clearChannels
+	
+	override def beforeAll: Unit = ()
+	override def afterAll: Unit = ()
 	
 	"A Channel" should "construct normally" in {
 		val channel = Channel("/chat/scala")
@@ -98,7 +102,7 @@ class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    val channel = Channel("/chat/scala")
 	    channel.start
 	    
-	    channel ! Subscribe(client)
+	    channel ! Subscribe(client.uuid)
 	    val subscribers = (channel !! GetSubscribers).getOrElse(new HashTrie[String, Client])
 	    var testSubscribers = new HashTrie[String, Client]
 	    testSubscribers = testSubscribers.update(client.uuid, client)
@@ -112,13 +116,13 @@ class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    val channel = Channel("/chat/scala")
 	    channel.start
 	    
-	    channel ! Subscribe(client)
+	    channel ! Subscribe(client.uuid)
 	    var subscribers = (channel !! GetSubscribers).getOrElse(new HashTrie[String, Client])
 	    var testSubscribers = new HashTrie[String, Client]
 	    testSubscribers = testSubscribers.update(client.uuid, client)
 	    subscribers must equal (testSubscribers)
 	    
-	    channel ! Unsubscribe(client)
+	    channel ! Unsubscribe(client.uuid)
         
         subscribers = (channel !! GetSubscribers).getOrElse(new HashTrie[String, Client])
 	    testSubscribers = new HashTrie[String, Client]
@@ -130,7 +134,7 @@ class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    import scala.collection.immutable.Queue
 	    val channel = Channel("/chat/scala")
 	    val client = Client.apply
-	    channel ! Subscribe(client)
+	    channel ! Subscribe(client.uuid)
 	    
 	    val message = new Message(channel = Channel("/chat/scala"))
 	    

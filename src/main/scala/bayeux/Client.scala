@@ -113,7 +113,7 @@ class Client private()
             //client is subscribed, and we want to avoid infinite calls back and forth
             if(!channels.contains(channel)){
                 channels = channels + channel
-                channel ! Subscribe(this)
+                channel ! Subscribe(this.uuid)
             }
         case RemoveSubscription(channel: Channel) =>
             log.debug("Client %s received RemoveSubscription(Client %s)", this, channel)
@@ -121,7 +121,7 @@ class Client private()
             //client is unsubscribed, and we want to avoid infinite calls back and forth
             if(channels.contains(channel)){
                 channels = channels - channel
-                channel ! Unsubscribe(this)
+                channel ! Unsubscribe(this.uuid)
             }
         //if this client has been around longer than the Bayeux.TIMEOUT_VALUE + 10 seconds, then stop it
         case GarbageCollect =>
@@ -135,7 +135,7 @@ class Client private()
         case Disconnect =>
             log.debug("Client %s received Disconnect", this)
             //unsubscribe to all channels and call stop
-            channels.foreach(_ ! Unsubscribe(this))
+            channels.foreach(_ ! Unsubscribe(this.uuid))
             stop
         case _ => println("client received an unknown message")
     }

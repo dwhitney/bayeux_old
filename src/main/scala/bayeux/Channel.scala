@@ -5,6 +5,7 @@ import java.net.{URLEncoder, URLDecoder}
 
 //akka
 import se.scalablesolutions.akka.actor._
+import se.scalablesolutions.akka.remote._
 import se.scalablesolutions.akka.stm.TransactionalState
 import se.scalablesolutions.akka.stm.HashTrie
 import se.scalablesolutions.akka.stm.Transaction._
@@ -93,8 +94,8 @@ object Channel{
 }
 
 
-case class Subscribe(client: Client){}
-case class Unsubscribe(client: Client){}
+case class Subscribe(clientId: String){}
+case class Unsubscribe(clientId: String){}
 case object GetSubscribers{}
 case class Publish(message: Message){}
 class Channel private (n: String) extends Actor{
@@ -108,16 +109,24 @@ class Channel private (n: String) extends Actor{
 	def receive = {
 	    case Publish(message: Message) =>
 	        log.debug("Channel %s received Publish(%s)", this, message)
-            for(key <- subscriptions.keySet) if(subscriptions(key) != message.client) subscriptions(key) ! Enqueue(message)
-	    case Subscribe(client: Client) => 
-	        log.debug("Channel %s received Subscribe(%s)", this, client)
-	        subscriptions = subscriptions + (client.uuid -> client)
-	        client ! AddSubscription(this)
-	    case Unsubscribe(client: Client) => 
-	        log.debug("Channel %s received Unsubscribe(%s)", this, client)
-	        subscriptions = subscriptions - client.uuid
+            for(key <- subscriptions.keySet) if(subscriptions(key).uuid != message.clientId) subscriptions(key) ! Enqueue(message)
+	    case Subscribe(clientId: String) => 
+	        log.debug("Channel %s received Subscribe(%s)", this, clientId)
+	        Client.getClient(clientId) match {
+	            case Some(client: Client) =>
+	                subscriptions = subscriptions + (clientId -> client)
+        	        client ! AddSubscription(this)
+        	    case None => ()
+	        }
+	    case Unsubscribe(clientId: String) => 
+	        log.debug("Channel %s received Unsubscribe(%s)", this, clientId)
+	        subscriptions = subscriptions - clientId
 	        //client might not be running if this unsubscribe is due to the client getting a Disconnect
-	        if(client.isRunning) client ! RemoveSubscription(this)
+	        Client.getClient(clientId) match {
+	            case Some(client: Client) =>
+	                if(client.isRunning) client ! RemoveSubscription(this)
+	            case None => ()
+	        }
 	    case GetSubscribers => 
 	        log.debug("Channel %s received GetSubscribers", this)
 	        reply(subscriptions)

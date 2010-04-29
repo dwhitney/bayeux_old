@@ -116,7 +116,7 @@ trait Bayeux{
         //immediately respond so that we do not have to close an already open connection
         val response = Message(
             channel = message.channel,
-            client = message.client,
+            clientId = message.clientId,
             data = message.data,
             id = message.id,
             ext = message.ext
@@ -128,7 +128,7 @@ trait Bayeux{
     private def metaUnsubscribe(message: Message): Option[List[Message]] = {
         message match {
             //check for missing clientId
-            case m: Message if(m.client == null) => missingClient(m)
+            case m: Message if(m.clientId == null) => missingClient(m)
             //check for missing subsciption channel
             case m: Message if(m.subscription == null) => 
                 error(message,
@@ -138,9 +138,9 @@ trait Bayeux{
                     
             //valid state
             case _ =>
-                message.subscription ! Unsubscribe(message.client)
+                message.subscription ! Unsubscribe(message.clientId)
                 val response = Message(channel = message.channel,
-                    client = message.client,
+                    clientId = message.clientId,
                     successful = true,
                     subscription = message.subscription,
                     id = message.id,
@@ -153,7 +153,7 @@ trait Bayeux{
     private def metaSubscribe(message: Message): Option[List[Message]] = {
         message match {
             //check for missing clientId
-            case m: Message if(m.client == null) => missingClient(m)
+            case m: Message if(m.clientId == null) => missingClient(m)
             //check for missing subsciption channel
             case m: Message if(m.subscription == null) => 
                 error(message,
@@ -172,10 +172,10 @@ trait Bayeux{
                     "you attempted to subscribe to a service channel")
             //valid state
             case _ =>
-                message.subscription ! Subscribe(message.client)
+                message.subscription ! Subscribe(message.clientId)
                 val response = new Message(
                     channel = message.channel, 
-                    client = message.client,
+                    clientId = message.clientId,
                     successful = true,
                     subscription = message.subscription,
                     id = message.id,
@@ -188,16 +188,20 @@ trait Bayeux{
     private def metaDisconnect(message: Message): Option[List[Message]] = {
         message match {
             //test for missing clientId
-            case m: Message if(m.client == null) => missingClient(m)
+            case m: Message if(m.clientId == null) => missingClient(m)
             //valid state
             case _ =>
-                message.client ! Disconnect
-                val response = new Message(channel = message.channel, 
-                        client = message.client,
-                        successful = true,
-                        id = message.id,
-                        isResponse = true)
-                Some(List(response))
+                Client.getClient(message.clientId) match {
+                    case Some(client: Client) =>
+                        client ! Disconnect
+                        val response = new Message(channel = message.channel, 
+                                clientId = message.clientId,
+                                successful = true,
+                                id = message.id,
+                                isResponse = true)
+                        Some(List(response))
+                    case None => Some(Nil)
+                } 
                 
         }
     }
@@ -206,7 +210,7 @@ trait Bayeux{
     private def metaConnect(message: Message): Option[List[Message]] = {
         message match {
             //test for missing clientId
-            case m: Message if(m.client == null) => missingClient(m)
+            case m: Message if(m.clientId == null) => missingClient(m)
             //test for missing connectionType
             case m: Message if(m.connectionType == null) =>
                 error(message,
@@ -223,12 +227,15 @@ trait Bayeux{
             case _ =>
                 val response = new Message(
                         channel = message.channel, 
-                        client = message.client,
+                        clientId = message.clientId,
                         successful = true,
                         id = message.id,
                         isResponse = true)
                         
-                message.client ! Enqueue(response)
+                Client.getClient(message.clientId) match {
+                    case Some(client: Client) => client ! Enqueue(response)
+                    case None => ()
+                }
                 None
         }
     }
@@ -253,7 +260,7 @@ trait Bayeux{
             case _ =>
                 val response = new Message(
                     channel = Channel(Bayeux.META_HANDSHAKE), 
-                    client = Client.apply,
+                    clientId = Client.apply.uuid,
                     successful = true,
                     id = message.id,
                     advice = Bayeux.DEFAULT_ADVICE,
