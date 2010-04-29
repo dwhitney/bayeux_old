@@ -145,7 +145,7 @@ class Client private()
 	//this will enqueue every message sent this way, and determine if the messageQueue should be flushed
 	private def processMessage(message: Message): Unit = {
 		messageQueue = messageQueue enqueue message
-		message.channel.name match {
+		message.channel match {
 			case Bayeux.META_SUBSCRIBE => flush
 			case Bayeux.META_HANDSHAKE => flush
 			case Bayeux.META_DISCONNECT => 

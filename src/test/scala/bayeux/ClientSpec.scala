@@ -76,7 +76,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	it must "enqueue a message in its message queue when receiving an enqueue message" in {
 	    import scala.collection.immutable.Queue
 	    val client = Client.apply	    
-	    val message = new Message(channel = Channel("/chat/scala"))
+	    val message = new Message(channel = "/chat/scala")
 	    
 	    client ! Enqueue(message)
 	    
@@ -87,7 +87,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	it must "flush a list of messages when the Flush message is sent" in {
 	    import scala.collection.immutable.Queue
 	    val client = Client.apply	    
-	    val message = new Message(channel = Channel("/chat/scala"))
+	    val message = new Message(channel = "/chat/scala")
 	    client.isDone must be (false)
 	    client ! Enqueue(message)
 	    Thread.sleep(100)
@@ -98,7 +98,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it should "immediately flush upon receiving a /meta/handshake message" in {
 		val client = Client.apply	
-		val message = new Message(channel = Channel(Bayeux.META_HANDSHAKE), clientId = client.uuid)
+		val message = new Message(channel = Bayeux.META_HANDSHAKE, clientId = client.uuid)
 		
 		client ! Enqueue(message)
 		
@@ -111,7 +111,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it should "immediately flush upon receiving a /meta/subscribe message" in {
 		val client = Client.apply	
-		val message = new Message(channel = Channel(Bayeux.META_SUBSCRIBE), clientId = client.uuid)
+		val message = new Message(channel = Bayeux.META_SUBSCRIBE, clientId = client.uuid)
 		
 		client ! Enqueue(message)
 		
@@ -124,7 +124,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it should "immediately flush upon receiving a /meta/disconnect message" in {
 		val client = Client.apply	
-		val message = new Message(channel = Channel(Bayeux.META_DISCONNECT), clientId = client.uuid)
+		val message = new Message(channel = Bayeux.META_DISCONNECT, clientId = client.uuid)
 		
 		client ! Enqueue(message)
 		
@@ -137,7 +137,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it should "immediately flush upon receiving a publish message" in {
 		val client = Client.apply	
-		val message = new Message(channel = Channel("/chat/scala"), clientId = client.uuid)
+		val message = new Message(channel = "/chat/scala", clientId = client.uuid)
 	    client ! Enqueue(message)
 		
         Thread.sleep(100)
@@ -148,7 +148,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	
 	it should "immediately flush upon invocation of the get method" in {
 		val client = Client.apply	
-		val message = new Message(channel = Channel(Bayeux.META_CONNECT), clientId = client.uuid)
+		val message = new Message(channel = Bayeux.META_CONNECT, clientId = client.uuid)
 		client ! Enqueue(message)
 		
         Thread.sleep(100)

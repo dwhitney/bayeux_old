@@ -85,7 +85,7 @@ trait Bayeux{
             //apply each extension's incoming method to the incoming methods, then dispatch the results
             val messages = runExtensions(Some(message), extensions.synchronized{ extensions }, true) match {
                 case Some(message) => 
-                    message.channel.name match {
+                    message.channel match {
                         case Bayeux.META_CONNECT => metaConnect(message)
                         case Bayeux.META_SUBSCRIBE => metaSubscribe(message)
                         case Bayeux.META_UNSUBSCRIBE => metaUnsubscribe(message)
@@ -106,7 +106,7 @@ trait Bayeux{
     
     //event messages, where most messages go
     private def publish(message: Message): Option[List[Message]] = {
-        message.channel ! Publish(message)
+        Channel(message.channel) ! Publish(message)
         val ack = Message(isResponse = true,
                 channel = message.channel,
                 successful = true, 
@@ -259,7 +259,7 @@ trait Bayeux{
             //valid message
             case _ =>
                 val response = new Message(
-                    channel = Channel(Bayeux.META_HANDSHAKE), 
+                    channel = Bayeux.META_HANDSHAKE, 
                     clientId = Client.apply.uuid,
                     successful = true,
                     id = message.id,

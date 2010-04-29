@@ -16,7 +16,7 @@ class MessageSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	override def beforeEach: Unit = ActorRegistry.actorsFor[Channel].foreach(_.stop)
 	
 	"A Message" should "construct normally" in {
-		val channel = Channel("/chat/scala")
+		val channel = "/chat/scala"
 		val message = new Message(channel = channel)
 		()
 	}
@@ -37,7 +37,7 @@ class MessageSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	it should "transform from a message into JSON" in {
 	    import us.says.bayeux.Message._
 
-		val json2 = Message(channel = Channel(Bayeux.META_HANDSHAKE))
+		val json2 = Message(channel = Bayeux.META_HANDSHAKE)
 		println(json2)
 	    ()
 	}

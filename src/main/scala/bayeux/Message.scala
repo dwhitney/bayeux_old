@@ -62,7 +62,7 @@ object Message{
         import net.liftweb.json.JsonDSL._
 
 		//assuming CHANNEL exists, which it should
-        var json: JObject = (CHANNEL -> message.channel.name)
+        var json: JObject = (CHANNEL -> message.channel)
         if(message.clientId != null) json = json ~ (CLIENT_ID -> message.clientId)
         if(message.connectionType != null) json = json ~ (CONNECTION_TYPE -> message.connectionType)
         if(message.dateTime != null) json = json ~ (TIMESTAMP -> message.timestamp)
@@ -73,7 +73,7 @@ object Message{
         if(message.ext.size > 0) json = json ~ (EXT -> message.ext)
         if(message.advice.size > 0) json = json ~ (ADVICE -> message.advice)
         
-        message.channel.name match {
+        message.channel match {
             case Bayeux.META_HANDSHAKE => 
                 json = json ~ (VERSION -> message.version) ~ (SUPPORTED_CONNECTION_TYPES -> message.supportedConnectionTypes)
                 if(message.minimumVersion != null) json = json ~ (MINIMUM_VERSION -> message.minimumVersion)
@@ -153,7 +153,7 @@ object Message{
 
 case class Message(
         var advice: Map[String, Any] = Map[String, Any](),
-        val channelName: String = null,
+        val channel: String = null,
         val clientId: String = null,
         val connectionType: String = null,
         var data: Map[String, Any] = Map[String, Any](),
@@ -169,7 +169,7 @@ case class Message(
         val version: String = Bayeux.VERSION){
 
     def this(json: JValue) = this(
-        channelString = Message.extractString(json, Message.CHANNEL),
+        channel = Message.extractString(json, Message.CHANNEL),
         clientId = Message.extractString(json, Message.CLIENT_ID),
         connectionType = Message.extractString(json, Message.CONNECTION_TYPE),
         error = Message.extractString(json, Message.ERROR),
