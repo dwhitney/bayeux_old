@@ -92,19 +92,6 @@ object Message{
         json
     }
     
-    //pulls the channel field out of the json doc and returns a Channel object.  returns null if it isn't found
-    private def extractChannel(json: JValue): Channel = {
-        implicit val formats = net.liftweb.json.DefaultFormats
-        if((json \ Message.CHANNEL) != JNothing) Channel((json \ Message.CHANNEL).extract[String])
-        else null
-    }
-    
-    //pulls the subscription field out of the json doc and returns a Channel object.  returns null if it isn't found
-    private def extractSubscription(json: JValue): Channel = {
-        implicit val formats = net.liftweb.json.DefaultFormats
-        if((json \ Message.SUBSCRIPTION) != JNothing) Channel((json \ Message.SUBSCRIPTION).extract[String])
-        else null
-    }
     
     //extracts the id field.  returns null if not found
     private def extractId(json: JValue): String = extractString(json, Message.ID)
@@ -163,7 +150,7 @@ case class Message(
         val id: String = null,
         val isResponse: Boolean = false,
         val minimumVersion: String = Bayeux.VERSION,
-        val subscription: Channel = null,
+        val subscription: String = null,
         val successful: Boolean = false,
         val supportedConnectionTypes: List[String] = List(Bayeux.LONG_POLLING),
         val version: String = Bayeux.VERSION){
@@ -176,7 +163,7 @@ case class Message(
         ext = Message.extractExt(json),
         id = Message.extractString(json, Message.ID),
         minimumVersion = Message.extractString(json, Message.MINIMUM_VERSION),
-        subscription = Message.extractSubscription(json),
+        subscription = Message.extractString(json, Message.SUBSCRIPTION),
         successful = Message.extractBoolean(json, Message.SUCCESSFUL),
         version = Message.extractString(json, Message.VERSION),
         dateTime = Message.extractDateTime(json),
