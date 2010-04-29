@@ -5,7 +5,8 @@ import org.joda.time.DateTime
 
 //akka
 import se.scalablesolutions.akka.actor._
-import se.scalablesolutions.akka.stm.HashTrie
+import se.scalablesolutions.akka.remote._
+import se.scalablesolutions.akka.stm._
 
 //java
 import java.util.concurrent.{Future, TimeUnit}
@@ -15,6 +16,8 @@ import java.util.UUID
 import scala.collection.immutable.Queue
 
 object Client{
+    
+    private val ids = TransactionalState.newRef[Int]
     
     def getClient(id: String): Option[Client] = {
         ActorRegistry.actorsFor(id) match {
@@ -28,6 +31,13 @@ object Client{
         val client = new Client
         client.start
         client
+    }
+    
+    def nextId: Int = {
+        atomic{
+            val id = ids.get.getOrElse(0) + 1
+            ids.swap(id)
+        }
     }
     
 }
@@ -53,7 +63,7 @@ class Client private()
     
     //create uuid, stripping out the dashes as per the bayeux spec
     override val uuid = UUID.randomUUID.toString.replaceAll("-", "")
-    id = uuid
+    id = RemoteServer.HOSTNAME + ":" + RemoteServer.PORT + ":" + Client.nextId
     
     log.debug("Client Created %s", this)
     
