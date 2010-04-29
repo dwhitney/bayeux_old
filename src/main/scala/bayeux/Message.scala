@@ -153,7 +153,7 @@ object Message{
 
 case class Message(
         var advice: Map[String, Any] = Map[String, Any](),
-        val channel: Channel = null,
+        val channelName: String = null,
         val clientId: String = null,
         val connectionType: String = null,
         var data: Map[String, Any] = Map[String, Any](),
@@ -169,7 +169,7 @@ case class Message(
         val version: String = Bayeux.VERSION){
 
     def this(json: JValue) = this(
-        channel = Message.extractChannel(json),
+        channelString = Message.extractString(json, Message.CHANNEL),
         clientId = Message.extractString(json, Message.CLIENT_ID),
         connectionType = Message.extractString(json, Message.CONNECTION_TYPE),
         error = Message.extractString(json, Message.ERROR),
