@@ -68,7 +68,7 @@ object Message{
         if(message.dateTime != null) json = json ~ (TIMESTAMP -> message.timestamp)
         if(message.error != null) json = json ~ (ERROR -> message.error)
         if(message.id != null) json = json ~ (ID -> message.id)
-        if(message.subscription != null) json = json ~ (SUBSCRIPTION -> message.subscription.name)
+        if(message.subscription != null) json = json ~ (SUBSCRIPTION -> message.subscription)
         if(message.isResponse) json = json ~ (SUCCESSFUL -> message.successful)
         if(message.ext.size > 0) json = json ~ (EXT -> message.ext)
         if(message.advice.size > 0) json = json ~ (ADVICE -> message.advice)

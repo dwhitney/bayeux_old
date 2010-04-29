@@ -138,7 +138,7 @@ trait Bayeux{
                     
             //valid state
             case _ =>
-                message.subscription ! Unsubscribe(message.clientId)
+                Channel(message.subscription) ! Unsubscribe(message.clientId)
                 val response = Message(channel = message.channel,
                     clientId = message.clientId,
                     successful = true,
@@ -160,19 +160,19 @@ trait Bayeux{
                     List[Int](Bayeux.ERROR_NO_SUBSCRIPTION_SPECIFIED),
                     List[String](null),
                     "no subscription was specified")
-            case m: Message if(m.subscription.name.matches("^\\/meta\\/.*")) =>
+            case m: Message if(m.subscription.matches("^\\/meta\\/.*")) =>
                 error(message,
                     List[Int](Bayeux.ERROR_SUBSCRIPTION_TO_META_CHANNEL),
                     List[String](null),
                     "you attempted to subscribe to a meta channel")
-            case m: Message if(m.subscription.name.matches("^\\/service\\/.*")) =>
+            case m: Message if(m.subscription.matches("^\\/service\\/.*")) =>
                 error(message,
                     List[Int](Bayeux.ERROR_SUBSCRIPTION_TO_SERVICE_CHANNEL),
                     List[String](null),
                     "you attempted to subscribe to a service channel")
             //valid state
             case _ =>
-                message.subscription ! Subscribe(message.clientId)
+                Channel(message.subscription) ! Subscribe(message.clientId)
                 val response = new Message(
                     channel = message.channel, 
                     clientId = message.clientId,

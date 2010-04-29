@@ -169,7 +169,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	""" in {
 	    object TestBayeux extends Bayeux{}
 	    val client = Client.apply
-        val message = new Message(channel = Bayeux.META_SUBSCRIBE, clientId = client.uuid, id = "myId", subscription = Channel("/chat/scala"))
+        val message = new Message(channel = Bayeux.META_SUBSCRIBE, clientId = client.uuid, id = "myId", subscription = "/chat/scala")
         val response = TestBayeux.dispatch(message).get(0)
         response.clientId must equal(client.uuid)
         response.subscription must equal(message.subscription)
@@ -212,7 +212,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    var subscribers = (channel !! GetSubscribers).getOrElse(new HashTrie[String, Client])
         subscribers.size must equal(1)
         
-        val message = new Message(channel = Bayeux.META_UNSUBSCRIBE, clientId = client.uuid, id = "myId", subscription = Channel("/chat/scala"))
+        val message = new Message(channel = Bayeux.META_UNSUBSCRIBE, clientId = client.uuid, id = "myId", subscription = "/chat/scala")
         
         val response = TestBayeux.dispatch(message).get(0)
         response.clientId must equal(client.uuid)
@@ -281,7 +281,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	it must "return an error message when a subscription to a /meta/ channel is attempted" in {
 	    object TestBayeux extends Bayeux{}
 	    val client = Client.apply
-	    val message = new Message(channel = Bayeux.META_SUBSCRIBE, clientId = client.uuid, id = "myId", subscription = Channel(Bayeux.META_SUBSCRIBE))
+	    val message = new Message(channel = Bayeux.META_SUBSCRIBE, clientId = client.uuid, id = "myId", subscription = Bayeux.META_SUBSCRIBE)
 	    
 	    val response = TestBayeux.dispatch(message).get(0)
 	    response.error must equal("409:null:you attempted to subscribe to a meta channel")
@@ -290,7 +290,7 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	it must "return an error message when a subscription to a /service/ channel is attempted" in {
 	    object TestBayeux extends Bayeux{}
 	    val client = Client.apply
-	    val message = new Message(channel = Bayeux.META_SUBSCRIBE, clientId = client.uuid, id = "myId", subscription = Channel("/service/private"))
+	    val message = new Message(channel = Bayeux.META_SUBSCRIBE, clientId = client.uuid, id = "myId", subscription = "/service/private")
 	    
 	    val response = TestBayeux.dispatch(message).get(0)
 	    response.error must equal("410:null:you attempted to subscribe to a service channel")
