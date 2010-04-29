@@ -32,8 +32,8 @@ object Client{
     
 }
 
-case class AddSubscription(channel: Channel){}
-case class RemoveSubscription(channel: Channel){}
+case class AddSubscription(name: String){}
+case class RemoveSubscription(name: String){}
 case object GetSubscriptions{}
 case object Disconnect{}
 case object GetMessageQueue{}
@@ -107,16 +107,18 @@ class Client private()
         case GetMessageQueue => 
             log.debug("Client %s received GetMessageQueue")
             reply(messageQueue)
-        case AddSubscription(channel: Channel) =>
-            log.debug("Client %s received AddSubscription(Client %s)", this, channel)
+        case AddSubscription(name: String) =>
+            log.debug("Client %s received AddSubscription(Client %s)", this, name)
             //checking to see if the channel is already subscribed to, because Channel will call AddSubscription when a 
             //client is subscribed, and we want to avoid infinite calls back and forth
+            val channel = Channel(name)
             if(!channels.contains(channel)){
                 channels = channels + channel
                 channel ! Subscribe(this.uuid)
             }
-        case RemoveSubscription(channel: Channel) =>
-            log.debug("Client %s received RemoveSubscription(Client %s)", this, channel)
+        case RemoveSubscription(name: String) =>
+            log.debug("Client %s received RemoveSubscription(Client %s)", this, name)
+            val channel = Channel(name)
             //checking to see if the channel is already removed, because Channel will call RemoveSubscription when a 
             //client is unsubscribed, and we want to avoid infinite calls back and forth
             if(channels.contains(channel)){

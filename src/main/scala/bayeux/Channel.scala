@@ -115,7 +115,7 @@ class Channel private (n: String) extends Actor{
 	        Client.getClient(clientId) match {
 	            case Some(client: Client) =>
 	                subscriptions = subscriptions + (clientId -> client)
-        	        client ! AddSubscription(this)
+        	        client ! AddSubscription(this.name)
         	    case None => ()
 	        }
 	    case Unsubscribe(clientId: String) => 
@@ -124,7 +124,7 @@ class Channel private (n: String) extends Actor{
 	        //client might not be running if this unsubscribe is due to the client getting a Disconnect
 	        Client.getClient(clientId) match {
 	            case Some(client: Client) =>
-	                if(client.isRunning) client ! RemoveSubscription(this)
+	                if(client.isRunning) client ! RemoveSubscription(this.name)
 	            case None => ()
 	        }
 	    case GetSubscribers => 

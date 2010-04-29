@@ -23,7 +23,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    val client = Client.apply
 	    client.start
 	    val channel = Channel("/chat/scala")
-	    client ! AddSubscription(channel)
+	    client ! AddSubscription(channel.name)
 	    val subscriptions = (client !! GetSubscriptions).getOrElse(Set[Channel]())
 	    subscriptions must equal(Set(channel))
 	    
@@ -36,7 +36,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    val client = Client.apply
 	    client.start
 	    val channel = Channel("/chat/scala")
-	    client ! AddSubscription(channel)
+	    client ! AddSubscription(channel.name)
 	    var subscriptions = (client !! GetSubscriptions).getOrElse(Set[Channel]())
 	    subscriptions must equal(Set(channel))
 	    
@@ -44,7 +44,7 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    subscribers.size must equal (1)
 	    subscribers(client.uuid) must equal(client)
 	    
-	    client ! RemoveSubscription(channel)
+	    client ! RemoveSubscription(channel.name)
 	    subscriptions = (client !! GetSubscriptions).getOrElse(Set[Channel](Channel("/chat/scala")))
 	    subscriptions must equal(Set[Channel]())
 	    
@@ -59,8 +59,8 @@ class ClientSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
 	    val scala = Channel("/chat/scala")
 	    val play = Channel("/chat/play")
 	    
-	    client ! AddSubscription(scala)
-	    client ! AddSubscription(play)
+	    client ! AddSubscription(scala.name)
+	    client ! AddSubscription(play.name)
 	    
 	    (client !! GetSubscriptions).getOrElse(Set[Channel]()) must equal(Set[Channel]() + scala + play)
 	    
