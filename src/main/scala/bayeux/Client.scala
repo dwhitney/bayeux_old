@@ -7,6 +7,7 @@ import org.joda.time.DateTime
 import se.scalablesolutions.akka.actor._
 import se.scalablesolutions.akka.remote._
 import se.scalablesolutions.akka.stm._
+import se.scalablesolutions.akka.stm.Transaction.Local._
 
 //java
 import java.util.concurrent.{Future, TimeUnit}
@@ -17,7 +18,7 @@ import scala.collection.immutable.Queue
 
 object Client{
     
-    private val ids = TransactionalState.newRef[Int]
+    private lazy val ids = TransactionalState.newRef[Int]
     
     def getClient(id: String): Option[Client] = {
         ActorRegistry.actorsFor(id) match {
@@ -62,8 +63,8 @@ class Client private()
     private var lastMetaConnect: DateTime = new DateTime
     
     //create uuid, stripping out the dashes as per the bayeux spec
-    override val uuid = UUID.randomUUID.toString.replaceAll("-", "")
-    id = RemoteServer.HOSTNAME + ":" + RemoteServer.PORT + ":" + Client.nextId
+    override val uuid = RemoteServer.HOSTNAME + ":" + RemoteServer.PORT + ":" + Client.nextId
+    id = uuid
     
     log.debug("Client Created %s", this)
     
