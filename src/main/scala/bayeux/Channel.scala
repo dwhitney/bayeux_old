@@ -103,8 +103,11 @@ class Channel private (n: String) extends Actor{
 	private var subscriptions = HashTrie[String, Client]()
 	
 	val name = n
+	override val uuid = name
 	val segments = n.split("/")
 	id = n
+	
+	override def init: Unit = RemoteNode.register(uuid, this)
 	
 	def receive = {
 	    case Publish(message: Message) =>

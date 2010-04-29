@@ -20,11 +20,19 @@ object Client{
     
     private lazy val ids = TransactionalState.newRef[Int]
     
-    def getClient(id: String): Option[Client] = {
+    private val parts = "(.*?):(.*?):(.*?)".r
+    
+    def getClient(id: String): Option[Actor] = {
         ActorRegistry.actorsFor(id) match {
             case client :: Nil => Some(client.asInstanceOf[Client])
             case client :: tail => Some(client.asInstanceOf[Client]) //this should never happen
-            case Nil => None
+            case Nil => 
+                val parts(host, port, i) = id
+                val portInt = port.toInt
+                if(host != RemoteServer.HOSTNAME && portInt != RemoteServer.PORT)
+                    Some(RemoteClient.actorFor(id, "us.says.bayeux.Client", host, portInt))
+                else
+                    None
         }
     }
     
@@ -67,6 +75,7 @@ class Client private()
     id = uuid
     
     log.debug("Client Created %s", this)
+    
     
     /**
 	 * get will always ask the client to flush its messages.

@@ -17,8 +17,14 @@ class ChannelSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach wit
 	
 	override def beforeEach: Unit = clearChannels
 	
-	override def beforeAll: Unit = ()
-	override def afterAll: Unit = ()
+	override def beforeAll: Unit = {
+	    Cluster.start
+	    RemoteNode.start
+	}
+	override def afterAll: Unit = {
+	    RemoteNode.shutdown
+	    Cluster.shutdown
+	}
 	
 	"A Channel" should "construct normally" in {
 		val channel = Channel("/chat/scala")
