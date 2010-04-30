@@ -141,7 +141,6 @@ class BayeuxSpec extends FlatSpec with MustMatchers with BeforeAndAfterEach{
         Thread.sleep(50)
         (Channel("/chat/scala") !! GetSubscribers).getOrElse(HashTrie[String, Client]()).size must equal(0)
         response.id must equal(message.id)
-        Client.getClient(response.clientId) must be(None)
 	}
 	
 	it must "send an error message when a client is not included in a /meta/subscribe message" in {

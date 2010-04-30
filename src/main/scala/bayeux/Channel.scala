@@ -98,6 +98,9 @@ case class Subscribe(clientId: String){}
 case class Unsubscribe(clientId: String){}
 case object GetSubscribers{}
 case class Publish(message: Message){}
+case class ForwardedSubscribe(clientId: String){}
+case class ForwardedPublish(message: Message){}
+
 class Channel private (n: String) extends Actor{
 	
 	private var subscriptions = HashTrie[String, Client]()
@@ -107,32 +110,53 @@ class Channel private (n: String) extends Actor{
 	val segments = n.split("/")
 	id = n
 	
-	override def init: Unit = RemoteNode.register(uuid, this)
+	override def init: Unit = RemoteNode.register(name, this)
 	
 	def receive = {
 	    case Publish(message: Message) =>
 	        log.debug("Channel %s received Publish(%s)", this, message)
-            for(key <- subscriptions.keySet) if(subscriptions(key).uuid != message.clientId) subscriptions(key) ! Enqueue(message)
+	        publish(message)
+            Cluster.foreach{ endpoint => RemoteClient.actorFor(name, endpoint.hostname, endpoint.port) ! ForwardedPublish(message)}
 	    case Subscribe(clientId: String) => 
 	        log.debug("Channel %s received Subscribe(%s)", this, clientId)
-	        Client.getClient(clientId) match {
-	            case Some(client: Client) =>
-	                subscriptions = subscriptions + (clientId -> client)
-        	        client ! AddSubscription(this.name)
-        	    case None => ()
-	        }
+	        subscribe(clientId)
+	        Cluster.foreach{ endpoint => RemoteClient.actorFor(name, endpoint.hostname, endpoint.port) ! ForwardedSubscribe(clientId) }
 	    case Unsubscribe(clientId: String) => 
+	        //unsubscribe messages aren't forwarded since clients are created willy-nilly all over and garbage collected all over -  it'll all work out if this is only done locally
 	        log.debug("Channel %s received Unsubscribe(%s)", this, clientId)
-	        subscriptions = subscriptions - clientId
-	        //client might not be running if this unsubscribe is due to the client getting a Disconnect
-	        Client.getClient(clientId) match {
-	            case Some(client: Client) =>
-	                if(client.isRunning) client ! RemoveSubscription(this.name)
-	            case None => ()
-	        }
+	        unsubscribe(clientId)
 	    case GetSubscribers => 
 	        log.debug("Channel %s received GetSubscribers", this)
 	        reply(subscriptions)
+        case ForwardedPublish(message: Message) =>
+	        log.debug("Channel %s received ForwardedPublish(%s)", this, message)
+	        publish(message)
+	    case ForwardedSubscribe(clientId: String) => 
+	        log.debug("Channel %s received ForwardedSubscribe(%s)", this, clientId)
+	        subscribe(clientId)
+	}
+	
+	private def publish(message: Message): Unit = {
+	    for(key <- subscriptions.keySet) if(subscriptions(key).uuid != message.clientId) subscriptions(key) ! Enqueue(message)
+	}
+	
+	private def subscribe(clientId: String): Unit = {
+	    Client.getClient(clientId) match {
+            case Some(client: Client) =>
+                subscriptions = subscriptions + (clientId -> client)
+    	        client ! AddSubscription(this.name)
+    	    case None => ()
+        }
+	}
+	
+	private def unsubscribe(clientId: String): Unit = {
+	    subscriptions = subscriptions - clientId
+        //client might not be running if this unsubscribe is due to the client getting a Disconnect
+        Client.getClient(clientId) match {
+            case Some(client: Client) =>
+                if(client.isRunning) client ! RemoveSubscription(this.name)
+            case None => ()
+        }
 	}
 	
 }

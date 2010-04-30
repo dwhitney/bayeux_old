@@ -8,10 +8,10 @@ import se.scalablesolutions.akka.actor._
 import se.scalablesolutions.akka.remote._
 import se.scalablesolutions.akka.stm._
 import se.scalablesolutions.akka.stm.Transaction.Local._
+import se.scalablesolutions.akka.util.UUID
 
 //java
 import java.util.concurrent.{Future, TimeUnit}
-import java.util.UUID
 
 //scala
 import scala.collection.immutable.Queue
@@ -27,17 +27,14 @@ object Client{
             case client :: Nil => Some(client.asInstanceOf[Client])
             case client :: tail => Some(client.asInstanceOf[Client]) //this should never happen
             case Nil => 
-                val parts(host, port, i) = id
-                val portInt = port.toInt
-                if(host != RemoteServer.HOSTNAME && portInt != RemoteServer.PORT)
-                    Some(RemoteClient.actorFor(id, "us.says.bayeux.Client", host, portInt))
-                else
-                    None
+                val client = new Client(Some(id))
+                client.start
+                Some(client)
         }
     }
     
     def apply: Client = {
-        val client = new Client
+        val client = new Client(None)
         client.start
         client
     }
@@ -61,7 +58,7 @@ case object GarbageCollect{}
 case object Flush{}
 case object IsDone{}
 
-class Client private()
+class Client private (clientId: Option[String])
     extends Actor
     with Future[List[Message]]{
     
@@ -71,7 +68,10 @@ class Client private()
     private var lastMetaConnect: DateTime = new DateTime
     
     //create uuid, stripping out the dashes as per the bayeux spec
-    override val uuid = RemoteServer.HOSTNAME + ":" + RemoteServer.PORT + ":" + Client.nextId
+    override val uuid = clientId match {
+        case Some(str) => str
+        case None => UUID.newUuid.toString
+    }
     id = uuid
     
     log.debug("Client Created %s", this)
